@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import pro from '/Photo/pro.png'
 
 const router = useRouter()
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // ฟอร์ม
 const student_ID = ref('')
@@ -29,21 +30,24 @@ function isNuEmail(v) {
 // โหลดรายชื่อคณะ
 onMounted(async () => {
   try {
-    const res = await fetch('http://localhost:3000/faculty')
-    faculties.value = await res.json()
+    const res = await fetch(`${API_URL}/faculty`)
+    const j = await res.json().catch(() => null)
+    if (!res.ok) {
+      throw new Error(j?.message || res.statusText || 'โหลดรายชื่อคณะไม่สำเร็จ')
+    }
+    faculties.value = Array.isArray(j) ? j : (j?.items ?? [])
   } catch (e) {
     console.error(e)
     errorMsg.value = 'โหลดรายชื่อคณะไม่สำเร็จ'
   }
 })
 
-const onSubmit = async (e) => {
-  e.preventDefault()
+const onSubmit = async () => {
   errorMsg.value = ''
   okMsg.value = ''
   loading.value = true
   try {
-    const emailClean = email.value.trim().toLowerCase()
+    const emailClean = (email.value || '').trim().toLowerCase()
 
     if (!isNuEmail(emailClean)) {
       throw new Error('โปรดใช้อีเมลที่ลงท้ายด้วย @nu.ac.th เท่านั้น')
@@ -54,12 +58,21 @@ const onSubmit = async (e) => {
     if (!password.value) {
       throw new Error('กรอกรหัสผ่าน')
     }
+    if (!student_Name.value.trim()) {
+      throw new Error('กรอกชื่อ-สกุล')
+    }
+    if (!student_level.value) {
+      throw new Error('เลือกชั้นปี')
+    }
+    if (!faculty.value) {
+      throw new Error('เลือกคณะ')
+    }
 
-    const res = await fetch('http://localhost:3000/register', {
+    const res = await fetch(`${API_URL}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        // IMPORTANT: ให้ตรงกับ backend ใหม่
+        // ให้ตรงกับ backend ของคุณ
         student_ID: student_ID.value.trim(),
         email: emailClean,
         password: password.value,
@@ -71,16 +84,17 @@ const onSubmit = async (e) => {
 
     const ct = res.headers.get('content-type') || ''
     const raw = await res.text()
-    const data = ct.includes('application/json') ? JSON.parse(raw) : {}
+    const data = ct.includes('application/json') ? JSON.parse(raw || '{}') : {}
 
-    if (!res.ok || !data.ok) {
-      throw new Error(data.message || raw.slice(0, 200) || 'สมัครบัญชีไม่สำเร็จ')
+    if (!res.ok || (typeof data.ok !== 'undefined' && !data.ok)) {
+      throw new Error(data.message || raw.slice(0, 300) || 'สมัครบัญชีไม่สำเร็จ')
     }
 
     okMsg.value = 'สมัครสำเร็จ! กำลังพาไปหน้าเข้าสู่ระบบ…'
     setTimeout(() => router.push({ name: 'login' }), 800)
   } catch (err) {
-    errorMsg.value = err.message || 'เกิดข้อผิดพลาด'
+    console.error(err)
+    errorMsg.value = err?.message || 'เกิดข้อผิดพลาด'
   } finally {
     loading.value = false
   }

@@ -2,96 +2,48 @@
 import { ref, onMounted, computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import profile from '/Photo/profilee.jpg'
-import axios from 'axios'
-
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const router = useRouter()
 const route = useRoute()
 const sidebarOpen = ref(false)
 
-function favorites() {
-    router.push('/favorites')
-}
 
-function home() {
-    router.push('/')
-}
+// ฟังก์ชันไปหน้าอื่น
+function favorites() { router.push('/favorites') }
+function home() { router.push('/') }
 
-// ดึงข้อมูลผู้ใช้จาก localStorage
+// state user (ui)
 const user = ref({
-    email: '',
-    student_ID: '',
-    student_level: '',
-    faculty_ID: '',
-    name: ''
+  email: '',
+  student_ID: '',
+  student_level: '',
+  faculty_ID: '',
+  name: ''
 })
 
 const faculties = ref([])
 
-onMounted(async () => {
-    user.value.email = localStorage.getItem('userEmail') || ''
-    user.value.student_ID = localStorage.getItem('student_ID') || ''
-    user.value.student_level = localStorage.getItem('studentLevel') || ''
-    user.value.faculty_ID = (localStorage.getItem('facultyId') || localStorage.getItem('faculty_ID') || '').toString()
-    user.value.name = localStorage.getItem('studentName') || ''
+// state for editing name
+const isEditingName = ref(false)
+const editableName = ref('')
 
-    console.log('[Layout] LS:', {
-        email: localStorage.getItem('userEmail'),
-        student_ID: localStorage.getItem('student_ID'),
-        studentLevel: localStorage.getItem('studentLevel'),
-        facultyId: localStorage.getItem('facultyId'),
-        studentName: localStorage.getItem('studentName'),
-    })
-
-    // โหลดรายชื่อคณะ (ID → Name)
-    try {
-        const res = await fetch('http://localhost:3000/faculty')
-        faculties.value = await res.json()
-    } catch (e) {
-        console.error('โหลดคณะไม่สำเร็จ:', e)
-        faculties.value = []
-    }
-})
-
-const currentFacultyId = computed(() =>
-    (user.value.faculty_ID || '').toString().trim()
-)
-
-const facultyName = computed(() => {
-    const fid = currentFacultyId.value
-    if (!fid) return '—'
-    // เทียบแบบแปลงเป็น string เสมอ กันกรณี number/string ไม่ตรงกัน
-    const found = faculties.value.find(f => String(f.faculty_ID).trim() === fid)
-    return found?.faculty_Name || fid || '—'
-})
-
-// --- State and Logic for Editing Name --- // ADDED
-const isEditingName = ref(false) // State สำหรับสลับโหมด View/Edit
-const editableName = ref('') // State สำหรับเก็บชื่อที่กำลังแก้ไขใน input
-
-// ฟังก์ชันเพื่อเริ่มโหมดแก้ไข
 function startEditingName() {
-    editableName.value = user.value.name // นำชื่อปัจจุบันไปใส่ใน input
-    isEditingName.value = true
+  editableName.value = user.value.name
+  isEditingName.value = true
 }
+function cancelEditingName() { isEditingName.value = false }
 
-// ฟังก์ชันเพื่อยกเลิกการแก้ไข
-function cancelEditingName() {
-    isEditingName.value = false
-}
-
-// ฟังก์ชันสำหรับบันทึกชื่อใหม่
+// update name (เหมือนเดิม)
+import axios from 'axios'
 async function saveName() {
   try {
-    const response = await axios.put(`http://localhost:3000/students/${user.value.student_ID}`, {
+    const response = await axios.put(`${API_URL}/students/${user.value.student_ID}`, {
       name: editableName.value
     });
-    
-    const updatedUser = response.data; // จะได้รับ { student_Name: "ชื่อใหม่" }
-    user.value.name = updatedUser.student_Name; // อัปเดต UI
-    localStorage.setItem('studentName', updatedUser.student_Name); // อัปเดต Local Storage
+    const updatedUser = response.data;
+    user.value.name = updatedUser.student_Name || editableName.value;
     
     alert('อัปเดตชื่อสำเร็จ!');
-
   } catch (error) {
     console.error('Failed to update name:', error);
     alert('เกิดข้อผิดพลาดในการอัปเดตชื่อ');
@@ -101,24 +53,125 @@ async function saveName() {
 }
 
 function openProfile() {
-    const dlg = document.getElementById('profileModal')
-    if (dlg && typeof dlg.showModal === 'function') {
-        isEditingName.value = false;
-        dlg.showModal()
-    }
+  const dlg = document.getElementById('profileModal')
+  if (dlg && typeof dlg.showModal === 'function') {
+    isEditingName.value = false;
+    dlg.showModal()
+  }
 }
 
-function logout() {
+/* ---------- helper: อ่าน /me และโหลดคณะ ---------- */
+async function fetchMeFallbackToLocalStorage() {
+  // พยายามเรียก /me (backend ต้องมี endpoint นี้)
+  try {
+    const res = await fetch(`${API_URL}/me`, {
+      method: 'GET',
+      credentials: 'include' // สำคัญมาก เพื่อส่ง cookie ไปด้วย
+    })
+    if (!res.ok) throw new Error('no-me')
+    const j = await res.json().catch(() => null)
+    const u = j?.user ?? null
+    if (u) {
+      user.value.email = u.email || u.id || user.value.email
+      user.value.student_ID = u.student_ID || user.value.student_ID
+      user.value.student_level = u.student_level || user.value.student_level
+      user.value.faculty_ID = (u.faculty_ID || u.facultyId || user.value.faculty_ID || '').toString()
+      user.value.name = u.name || u.student_Name || user.value.name
+      // ถ้ามี Pinia store ให้อัปเดต
+      try { if (authStore && typeof authStore.setUser === 'function') authStore.setUser(u) } catch(e){}
+      return
+    }
+    throw new Error('no-user')
+  } catch (e) {
+    // fallback: อ่านจาก localStorage (เพื่อความเข้ากันกับโค้ดเก่า)
+    user.value.email =  ''
+    user.value.student_ID = ''
+    user.value.student_level =  ''
+    user.value.faculty_ID = ''
+    user.value.name =  ''
+  }
+}
 
-    localStorage.removeItem('auth')
-    localStorage.removeItem('userEmail')
-    localStorage.removeItem('student_ID')
-    localStorage.removeItem('studentLevel')
-    localStorage.removeItem('facultyName')
-    localStorage.removeItem('studentName')
+async function loadFaculties() {
+  try {
+    const res = await fetch(`${API_URL}/faculty`, {
+      method: 'GET',
+      credentials: 'include' // ส่ง cookie หาก endpoint ต้องการ
+    })
+    const j = await res.json().catch(() => null)
+    if (!res.ok) {
+      throw new Error(j?.message || res.statusText || 'โหลดคณะไม่สำเร็จ')
+    }
+    faculties.value = Array.isArray(j) ? j : (j?.items ?? [])
+  } catch (e) {
+    console.error('โหลดคณะไม่สำเร็จ:', e)
+    faculties.value = []
+  }
+}
+
+onMounted(async () => {
+  await fetchMeFallbackToLocalStorage()
+  await loadFaculties()
+})
+
+const currentFacultyId = computed(() =>
+  (user.value.faculty_ID || '').toString().trim()
+)
+
+const facultyName = computed(() => {
+  const fid = currentFacultyId.value
+  if (!fid) return '—'
+  const found = faculties.value.find(f => String(f.faculty_ID).trim() === fid)
+  return found?.faculty_Name || fid || '—'
+})
+
+/* ---------- logout (ปลอดภัย) ---------- */
+async function logout() {
+  try {
+    // 1) บอก backend ให้ล้าง cookie (ต้องมี POST /logout)
+    await fetch(`${API_URL}/logout`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+  } catch (e) {
+    console.warn('logout request failed:', e)
+  }
+
+  try {
+    // 2) ล้าง Pinia store (ถ้ามี)
+    try {
+      if (authStore && typeof authStore.clear === 'function') {
+        authStore.clear()
+      }
+    } catch (e) {
+      console.warn('authStore clear failed', e)
+    }
+
+    // 3) ล้าง localStorage keys เก่า (เพื่อความเข้ากัน)
+    const keysToRemove = [
+      'auth', 'userEmail', 'student_ID',
+      'studentLevel', 'facultyName', 'studentName', 'facultyId', 'faculty_ID'
+    ]
+    keysToRemove.forEach(k => localStorage.removeItem(k))
+
+    // 4) unregister service workers (ถ้ามี) เพื่อป้องกัน cache เก่า
+    if ('serviceWorker' in navigator) {
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations()
+        for (const r of regs) {
+          await r.unregister()
+        }
+      } catch (swErr) {
+        console.warn('SW unregister failed', swErr)
+      }
+    }
+  } finally {
+    // 5) redirect to login
     router.push({ name: 'login' })
+  }
 }
 </script>
+
 
 <template>
     <div class="min-h-screen">

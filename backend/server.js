@@ -9,9 +9,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
-
-
 app.use((req, res, next) => {
   console.log(`📥 Request: ${req.method} ${req.url}`);
   next();
@@ -999,42 +996,37 @@ app.get('/popular-subjects', async (req, res) => {
   }
 });
 
-app.put('/students/:id', (req, res) => {
-    // 1. ดึง ID และ "ชื่อใหม่" จากข้อมูลที่ Frontend ส่งมา
-    const studentId = req.params.id;
-    const { name } = req.body; 
+//ดึงชื่อในตารางstudents
+app.put('/students/:id', async (req, res) => {
+  const studentId = req.params.id;
+  const { name } = req.body;
 
-    // 2. ตรวจสอบข้อมูลเบื้องต้น
-    if (!name) {
-        console.error("Validation Error: Name is required.");
-        return res.status(400).json({ error: 'Name is required' });
+  if (!name) {
+    console.error("Validation Error: Name is required.");
+    return res.status(400).json({ error: 'Name is required' });
+  }
+
+  const sql = "UPDATE Student SET student_Name = ? WHERE student_ID = ?";
+
+  try {
+    const [result] = await db.query(sql, [name, studentId]);
+
+    if (result.affectedRows === 0) {
+      console.warn(`Update Warning: Student with ID ${studentId} not found.`);
+      return res.status(404).json({ error: 'Student not found' });
     }
 
-    // 3. สร้างคำสั่ง SQL เพื่ออัปเดตฐานข้อมูล
-    const sql = "UPDATE Student SET student_Name = ? WHERE student_ID = ?";
-    
-    // 4. ส่งคำสั่งไปทำงานที่ฐานข้อมูล
-    db.query(sql, [name, studentId], (err, result) => {
-        // จัดการ Error กรณีฐานข้อมูลทำงานผิดพลาด
-        if (err) {
-            console.error("Database Error on UPDATE:", err);
-            return res.status(500).json({ error: 'Database update failed' });
-        }
-        
-        // จัดการ Error กรณีไม่พบ ID ที่ต้องการอัปเดต
-        if (result.affectedRows === 0) {
-            console.warn(`Update Warning: Student with ID ${studentId} not found.`);
-            return res.status(404).json({ error: 'Student not found' });
-        }
-        
-        // 5. เมื่อ UPDATE สำเร็จ ให้ส่งข้อมูลที่ถูกต้องกลับไป
-        console.log(`✅ Success: Updated student ID ${studentId} to name "${name}". Responding to client.`);
-        
-        res.status(200).json({ 
-            student_ID: studentId,
-            student_Name: name // <<-- ส่ง "ชื่อใหม่" กลับไป
-        });
+    console.log(`✅ Success: Updated student ID ${studentId} to name "${name}".`);
+
+    res.status(200).json({
+      student_ID: studentId,
+      student_Name: name
     });
+
+  } catch (err) {
+    console.error("Database Error on UPDATE:", err);
+    return res.status(500).json({ error: 'Database update failed' });
+  }
 });
 
 
