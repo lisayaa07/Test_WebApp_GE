@@ -2,6 +2,10 @@
 const mysql = require('mysql2');
 const fs = require('fs');
 
+const caCert = process.env.CA_CERT_CONTENT; 
+
+
+
 // ✅ สร้างการตั้งค่า SSL (Aiven ต้องใช้ SSL)
 let sslConfig = { rejectUnauthorized: true };
 
