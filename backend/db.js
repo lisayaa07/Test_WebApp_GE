@@ -12,13 +12,9 @@ let sslConfig = { rejectUnauthorized: true };
 if (process.env.AIVEN_CA_CERT) {
   // ✅ ถ้า Render มี cert ใน environment variable
   sslConfig.ca = process.env.AIVEN_CA_CERT;
-  
-  // 🟢 แก้ไข: ตั้งค่า rejectUnauthorized เป็น false เพื่อแก้ปัญหา self-signed
-  sslConfig.rejectUnauthorized = false; 
 } else {
   // ✅ ถ้า run ในเครื่อง ใช้ไฟล์ cert จาก local
   sslConfig.ca = fs.readFileSync('./certificate/ca.pem').toString();
-  // ⚠️ สำหรับ Local/Dev คุณอาจจะตั้งค่า rejectUnauthorized: true เหมือนเดิมก็ได้
 }
 
 
