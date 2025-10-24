@@ -289,7 +289,7 @@ async function logout() {
                             </div>
                             <div class="p-4 rounded-box bg-base-200 shadow-xl/20">
                                 <div class="opacity-60 text-base">คณะ</div>
-                                <div class="font-medium text-xl">{{ facultyName }}</div>
+                                <div class="font-medium text-xl">{{ user.faculty_Name }}</div>
                             </div>
                         </div>
 
