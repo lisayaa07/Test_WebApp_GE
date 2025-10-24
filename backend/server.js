@@ -300,35 +300,12 @@ function isNuEmail(v) {
   return typeof v === 'string' && v.toLowerCase().endsWith('@nu.ac.th');
 }
 
-app.post('/login', async (req, res) => {
-  // เปลี่ยนชื่อฟิลด์ให้สื่อชัด: email + password
-  try { // 🟢 เพิ่ม try/catch เพื่อใช้ async/await
-    const [rows] = await db.query(sql, [email.toLowerCase()]); // 🟢 เปลี่ยนจาก connection.query เป็น db.query
-    
-    if (!rows.length) {
-      return res.status(401).json({ ok: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
-    }
+// ในไฟล์ server.js (หา app.post('/login', ...) แล้วแก้ไขทั้งบล็อก)
 
-    const row = rows[0];
-    const ok = await bcrypt.compare(password, row.password);
-    if (!ok) {
-      return res.status(401).json({ ok: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
-    }
+app.post('/login', async (req, res) => { // 🟢 ต้องประกาศเป็น async function
+  const email = (req.body.email || '').trim().toLowerCase(); // 🟢 ดึงค่า email/password
+  const password = req.body.password;
 
-    // ✅ สำเร็จ: ส่งโปรไฟล์กลับ
-    return res.json({
-      ok: true,
-      user: {
-        id: row.email,
-        student_ID: row.student_ID || '',
-        // ... (ข้อมูลอื่น ๆ)
-      }
-    });
-
-  } catch (err) { // 🟢 ย้ายการจัดการ Error มาตรงนี้
-    console.error('Login DB error:', err);
-    return res.status(500).json({ ok: false, message: 'Database Error' });
-  }
   const sql = `
     SELECT
       u.email,
@@ -339,41 +316,46 @@ app.post('/login', async (req, res) => {
       f.faculty_Name,    
       s.student_ID
     FROM Users u
-    LEFT JOIN Student s ON s.email = u.email   -- ✅ จับคู่ด้วย email
+    LEFT JOIN Student s ON s.email = u.email   
     LEFT JOIN Faculty f ON f.faculty_ID = s.faculty_ID
     WHERE u.email = ?
     LIMIT 1
   `;
 
-  connection.query(sql, [email.toLowerCase()], async (err, rows) => {
-    if (err) {
-      console.error('DB error:', err);
-      return res.status(500).json({ ok: false, message: 'Database Error' });
-    }
+  try { 
+    // 1. รัน Query ด้วย db.query (Promise-based)
+    const [rows] = await db.query(sql, [email]); // 🟢 ใช้ db.query และใช้ [rows] เพื่อรับผลลัพธ์
+    
     if (!rows.length) {
       return res.status(401).json({ ok: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
     }
 
     const row = rows[0];
     const ok = await bcrypt.compare(password, row.password);
+    
     if (!ok) {
       return res.status(401).json({ ok: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
     }
 
-    // ✅ สำเร็จ: ส่งโปรไฟล์กลับ
+    // 2. สำเร็จ: ส่งโปรไฟล์กลับ
     return res.json({
       ok: true,
       user: {
-        id: row.email,                               // ใช้ email เป็น id ของ session ฝั่ง client
-        student_ID: row.student_ID || '',            // เผื่อหน้าอื่นต้องใช้
-        name: row.student_Name || '',
+        id: row.email,
+        student_ID: row.student_ID || '',
+        student_Name: row.student_Name || '',
         student_level: row.student_level || '',
         faculty_ID: row.faculty_ID || '',
         faculty_Name: row.faculty_Name || ''
       }
     });
-  });
+
+  } catch (err) { // 3. จัดการ Error (เช่น SQL, DB Connection)
+    console.error('Login DB error:', err);
+    return res.status(500).json({ ok: false, message: 'Database error' });
+  }
 });
+
 
 
 
