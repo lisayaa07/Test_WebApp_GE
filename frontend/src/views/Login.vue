@@ -1,103 +1,76 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import api from '@/api/api'
 
-const user = ref(null)
-const profile = ref('/Photo/pro.png') // หรือ path ที่คุณเก็บรูปไว้
-const isEditingName = ref(false)
-const editableName = ref('')
+const email = ref('')
+const password = ref('')
+const errorMessage = ref('')
+const router = useRouter()
 
-// โหลดข้อมูล user จาก localStorage
-onMounted(() => {
+async function handleLogin() {
   try {
-    const saved = localStorage.getItem('user')
-    if (saved) {
-      user.value = JSON.parse(saved)
-      editableName.value = user.value.student_Name
+    const res = await api.post('/login', { email: email.value, password: password.value })
+
+    if (res.data.ok) {
+      // ✅ เก็บข้อมูล user ไว้ใน localStorage
+      localStorage.setItem('user', JSON.stringify(res.data.user))
+
+      // ✅ ล้าง error และเปลี่ยนหน้า
+      errorMessage.value = ''
+      router.push('/layout')
+    } else {
+      errorMessage.value = res.data.message || 'เข้าสู่ระบบไม่สำเร็จ'
     }
   } catch (err) {
-    console.error('❌ load user error:', err)
+    console.error('Login error:', err)
+    errorMessage.value = 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้'
   }
-})
-
-// ฟังก์ชันแก้ชื่อ
-function startEditingName() {
-  isEditingName.value = true
-}
-function cancelEditingName() {
-  isEditingName.value = false
-  editableName.value = user.value?.student_Name || ''
-}
-function saveName() {
-  if (!editableName.value.trim()) return
-  user.value.student_Name = editableName.value
-  localStorage.setItem('user', JSON.stringify(user.value))
-  isEditingName.value = false
 }
 </script>
 
 
 <template>
-  <!-- ถ้ายังไม่มี user -->
-  <div v-if="!user" class="flex items-center justify-center h-screen bg-blue-200">
-    <p class="text-xl text-gray-800">กำลังโหลดข้อมูลผู้ใช้...</p>
-  </div>
-
-  <!-- ถ้ามี user แล้ว -->
-  <div v-else>
-    <dialog id="profileModal" class="modal">
-      <div class="modal-box bg-[#6495ED] rounded-2xl shadow-2xl">
-        <h3 class="font-bold text-2xl mb-5 text-[#F5F5DC]">Profile</h3>
-
-        <div class="flex items-center gap-4 mb-6">
-          <div class="avatar">
-            <div class="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-              <img :src="profile" alt="profile" />
-            </div>
-          </div>
-
-          <div>
-            <div v-if="!isEditingName" class="mt-3 text-xl font-semibold text-[#330000]">
-              {{ user.student_Name || '—' }}
-              <FontAwesomeIcon
-                icon="pen"
-                class="text-base-200 cursor-pointer ml-2 hover:text-white"
-                title="แก้ไขชื่อ"
-                @click="startEditingName"
-              />
-            </div>
-
-            <div v-else class="mt-3 space-y-2">
-              <input
-                type="text"
-                v-model="editableName"
-                class="input input-bordered w-full max-w-xs"
-                placeholder="กรอกชื่อใหม่"
-                @keyup.enter="saveName"
-              />
-              <div class="flex gap-2">
-                <button class="btn btn-sm btn-success" @click="saveName">บันทึก</button>
-                <button class="btn btn-sm btn-ghost" @click="cancelEditingName">ยกเลิก</button>
-              </div>
-            </div>
-
-            <div class="text-sm opacity-70">{{ user.id || '—' }}</div>
-            <div class="text-sm opacity-70">Student ID: {{ user.student_ID || '—' }}</div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4 text-lg">
-          <div class="p-4 rounded-box bg-base-200 shadow-xl/20">
-            <div class="opacity-60 text-base">ชั้นปี</div>
-            <div class="font-medium text-xl">{{ user.student_level || '—' }}</div>
-          </div>
-
-          <div class="p-4 rounded-box bg-base-200 shadow-xl/20">
-            <div class="opacity-60 text-base">คณะ</div>
-            <div class="font-medium text-xl">{{ user.faculty_Name || '—' }}</div>
-          </div>
+  <div class="min-h-screen flex items-center justify-center bg-[#F6E8C8]">
+    <!-- กล่องใหญ่แบ่งซ้าย/ขวา -->
+    <div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 bg-[#FBE7B2] rounded-[28px] shadow-xl overflow-hidden">
+      <!-- ซ้าย: รูป + Welcome -->
+      <div class="relative p-6 lg:p-10 bg-[#F7C86A]">
+        <div class="absolute inset-0 bg-gradient-to-br from-[#FAD98C] via-[#F7C86A] to-[#F2B45E]" aria-hidden="true" />
+        <div class="relative h-full flex flex-col items-center justify-center text-center">
+          <img :src="pro" alt="students" class="w-11/12 max-w-[520px] rounded-2xl shadow-md" />
         </div>
       </div>
-    </dialog>
+
+      <!-- ขวา: ฟอร์ม -->
+      <div class="bg-[#FBEFD4] flex items-center">
+        <form @submit="onLogin" class="w-full px-8 lg:px-12 py-10">
+          <h2 class="text-3xl font-extrabold text-[#2E2A1F] mb-8">Login</h2>
+
+          <label class="block mb-4">
+            <span class="text-sm text-[#6B614B]">email</span>
+            <input v-model="email" class="input input-bordered w-full bg-white mt-2" placeholder="email"
+              pattern="^[^@\s]+@nu\.ac\.th$" required />
+          </label>
+
+          <label class="block mb-4">
+            <span class="text-sm text-[#6B614B]">password</span>
+            <input v-model="password" type="password" class="input input-bordered w-full bg-white mt-2"
+              placeholder="password" autocomplete="current-password" required />
+          </label>
+
+          <p v-if="errorMsg" class="text-error text-sm mb-3">{{ errorMsg }}</p>
+
+          <button class="btn w-full bg-[#F6C052] hover:bg-[#F3B43E] border-none" type="submit" :disabled="loading">
+            {{ loading ? 'กำลังเข้าสู่ระบบ...' : 'Login' }}
+          </button>
+
+          <div class="text-sm text-[#6B614B] mt-6">
+            don’t have an account?
+            <router-link :to="{ name: 'signup' }" class="link link-warning">Sign up</router-link>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
