@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import pro from '/Photo/pro.png' // ← เปลี่ยนชื่อไฟล์ตามที่คุณวางจริง
-import { ref } from 'vue'
 import api from '@/api/api' // 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
