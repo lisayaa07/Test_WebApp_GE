@@ -110,12 +110,8 @@ async function loadFaculties() {
 }
 
 onMounted(async () => {
- const saved = localStorage.getItem('user');
-  if (saved) {
-    user.value = JSON.parse(saved);
-  } else {
-    await fetchMeFallbackToLocalStorage();
-  }
+  await fetchMeFallbackToLocalStorage()
+  await loadFaculties()
 })
 
 const currentFacultyId = computed(() =>
@@ -211,6 +207,7 @@ async function logout() {
                 </div>
 
                 <!-- Popup โปรไฟล์ -->
+               <!-- Popup โปรไฟล์ -->
                 <dialog id="profileModal" class="modal">
                   <div class="modal-box bg-[#6495ED] rounded-2xl shadow-2xl">
                     <h3 class="font-bold text-2xl mb-5 text-[#F5F5DC]">Profile</h3>
@@ -263,6 +260,7 @@ async function logout() {
                   </div>
                 </dialog>
 
+            </div>
         </nav>
 
         <!-- ✅ Sidebar  -->
