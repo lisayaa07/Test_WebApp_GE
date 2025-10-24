@@ -11,8 +11,8 @@ let sslConfig = undefined; // เริ่มจากไม่ตั้ง SSL
 
 if (process.env.DB_SSL === '1') {
   sslConfig = { rejectUnauthorized: true };
-  if (process.env.AIVEN_CA_CERT) {
-    sslConfig.ca = process.env.AIVEN_CA_CERT;
+  if (process.env.VITE_API_URL) {
+    sslConfig.ca = process.env.VITE_API_URL;
   } else if (process.env.ALLOW_INSECURE_SSL === '1') {
     // โหมดผ่อนปรน (เฉพาะชั่วคราว)
     sslConfig = { rejectUnauthorized: false };
