@@ -8,14 +8,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-import { api } from '@/api'
-await api.post('/login', { email, password })
+
 
 // server.js
 const cors = require('cors')
 app.use(cors({
   origin: [
-    'https://test-web-app-ge.vercel.app/login',
+    'https://test-web-app-ge.vercel.app',
   ],
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
