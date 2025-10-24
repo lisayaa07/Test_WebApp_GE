@@ -1,32 +1,49 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/api/api'
+import pro from '/Photo/pro.png' 
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const router = useRouter()
 const email = ref('')
 const password = ref('')
-const errorMessage = ref('')
-const router = useRouter()
+const loading = ref(false)
+const errorMsg = ref('')
 
-async function handleLogin() {
+function isNuEmail(v) { return typeof v === 'string' && v.toLowerCase().endsWith('@nu.ac.th') }
+
+async function onLogin(e) {
+  e.preventDefault(); 
+  loading.value = true;
+  errorMsg.value = '';
+
   try {
-    const res = await api.post('/login', { email: email.value, password: password.value })
-
-    if (res.data.ok) {
-      // ✅ เก็บข้อมูล user ไว้ใน localStorage
-      localStorage.setItem('user', JSON.stringify(res.data.user))
-
-      // ✅ ล้าง error และเปลี่ยนหน้า
-      errorMessage.value = ''
-      router.push('/layout')
-    } else {
-      errorMessage.value = res.data.message || 'เข้าสู่ระบบไม่สำเร็จ'
-    }
-  } catch (err) {
-    console.error('Login error:', err)
-    errorMessage.value = 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้'
+    await doLogin(email.value, password.value);
+  } catch (error) {
+    errorMsg.value = error.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+  } finally {
+    loading.value = false;
   }
 }
+
+
+async function doLogin(email, password) {
+  const res = await fetch(`${API_URL}/login`, {
+    method: 'POST',
+    credentials: 'include', // Backend จะเซ็ต cookie ให้
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.ok) {
+    throw new Error(data.message || 'Login failed');
+  }
+
+  // ✅ การแก้ไข: Redirect ไปที่หน้า Home ทันที
+  // ลบโค้ด localStorage ทั้งหมด
+  router.push({ name: 'home' });
+} 
 </script>
 
 
