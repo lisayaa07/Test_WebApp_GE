@@ -300,17 +300,35 @@ function isNuEmail(v) {
   return typeof v === 'string' && v.toLowerCase().endsWith('@nu.ac.th');
 }
 
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   // เปลี่ยนชื่อฟิลด์ให้สื่อชัด: email + password
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ ok: false, message: 'กรอก Email และ Password' });
-  }
-  if (!isNuEmail(email)) {
-    return res.status(400).json({ ok: false, message: 'ต้องใช้อีเมล @nu.ac.th เท่านั้น' });
-  }
+  try { // 🟢 เพิ่ม try/catch เพื่อใช้ async/await
+    const [rows] = await db.query(sql, [email.toLowerCase()]); // 🟢 เปลี่ยนจาก connection.query เป็น db.query
+    
+    if (!rows.length) {
+      return res.status(401).json({ ok: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
+    }
 
-  // 👉 ใช้ email เป็นตัวล็อกอิน / JOIN ด้วย email
+    const row = rows[0];
+    const ok = await bcrypt.compare(password, row.password);
+    if (!ok) {
+      return res.status(401).json({ ok: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
+    }
+
+    // ✅ สำเร็จ: ส่งโปรไฟล์กลับ
+    return res.json({
+      ok: true,
+      user: {
+        id: row.email,
+        student_ID: row.student_ID || '',
+        // ... (ข้อมูลอื่น ๆ)
+      }
+    });
+
+  } catch (err) { // 🟢 ย้ายการจัดการ Error มาตรงนี้
+    console.error('Login DB error:', err);
+    return res.status(500).json({ ok: false, message: 'Database Error' });
+  }
   const sql = `
     SELECT
       u.email,
