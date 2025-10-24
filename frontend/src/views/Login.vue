@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import pro from '/Photo/pro.png' 
+import pro from '/Photo/pro.png' // ← เปลี่ยนชื่อไฟล์ตามที่คุณวางจริง
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const router = useRouter()
@@ -9,46 +9,50 @@ const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
-// Login.vue
-const { data } = await api.post('/login', { email, password }) // ไม่ส่ง withCredentials
+
 
 
 function isNuEmail(v) { return typeof v === 'string' && v.toLowerCase().endsWith('@nu.ac.th') }
 
-async function onLogin(e) {
-  e.preventDefault(); 
-  loading.value = true;
-  errorMsg.value = '';
-
+const onLogin = async (e) => {
+  e.preventDefault()
+  errorMsg.value = ''
+  loading.value = true
   try {
-    await doLogin(email.value, password.value);
-  } catch (error) {
-    errorMsg.value = error.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+    const res = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.value.trim(), password: password.value })
+    })
+    const data = await res.json()
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.message || 'เข้าสู่ระบบไม่สำเร็จ')
+    }
+
+      // ⬇️ เก็บ user profile ลง localStorage
+    // หลัง login สำเร็จ
+    localStorage.setItem('auth', '1')
+    localStorage.setItem('userEmail', data.user.id)
+    localStorage.setItem('student_ID', data.user.student_ID || '')
+    localStorage.setItem('studentLevel', data.user.student_level || '')
+    localStorage.setItem('facultyId', data.user.faculty_ID || '')
+    localStorage.setItem('facultyName', data.user.faculty_Name || '')
+    localStorage.setItem('studentName',  data.user.name || '') 
+
+
+
+
+
+    router.push({ name: 'home' })
+  } catch (err) {
+    errorMsg.value = err.message || 'เกิดข้อผิดพลาด'
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
-
-async function doLogin(email, password) {
-  const res = await fetch(`${API_URL}/login`, {
-    method: 'POST',
-    credentials: 'include', // Backend จะเซ็ต cookie ให้
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  });
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.ok) {
-    throw new Error(data.message || 'Login failed');
-  }
-
-  // ✅ การแก้ไข: Redirect ไปที่หน้า Home ทันที
-  // ลบโค้ด localStorage ทั้งหมด
-  router.push({ name: 'home' });
-} 
 </script>
-
 
 <template>
   <div class="min-h-screen flex items-center justify-center bg-[#F6E8C8]">
