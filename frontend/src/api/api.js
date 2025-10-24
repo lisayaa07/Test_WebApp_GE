@@ -1,10 +1,8 @@
-// frontend/src/api/api.js
-import axios from 'axios';
-
+// api/api.js
+import axios from 'axios'
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE, // ตั้งค่าใน Vercel เป็น URL ของ Render
-  withCredentials: false,
-  timeout: 15000,
-});
+  baseURL: import.meta.env.VITE_API_URL, // https://test-webapp-ge.onrender.com
 
-export default api;
+  timeout: 15000,
+})
+export default api

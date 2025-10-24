@@ -1,11 +1,22 @@
 require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
-
+const cors = require('cors')
 const app = express();
 const pool = require('./db');      // db.js export เป็น createPool() (ยังไม่ .promise())
 const db = pool.promise();         // ใช้แบบ promise
 const connection = pool; 
+const corsOpts = {
+  origin: 'https://test-web-app-ge.vercel.app',
+  credentials: true,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+}
+
+app.use(cors(corsOpts))
+
+// ให้ตอบ preflight ด้วย (OPTIONS)
+app.options('*', cors(corsOpts))
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

@@ -9,6 +9,9 @@ const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
+// Login.vue
+const { data } = await api.post('/login', { email, password }) // ไม่ส่ง withCredentials
+
 
 function isNuEmail(v) { return typeof v === 'string' && v.toLowerCase().endsWith('@nu.ac.th') }
 
