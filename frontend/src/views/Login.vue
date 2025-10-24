@@ -10,6 +10,11 @@ const password = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
 
+const res = await api.post('/login', { email, password });
+if (res.data.success) {
+  localStorage.setItem('user', JSON.stringify(res.data.user)); // ✅ เก็บ user
+  router.push('/layout'); // หรือ path ที่คุณใช้
+}
 
 
 function isNuEmail(v) { return typeof v === 'string' && v.toLowerCase().endsWith('@nu.ac.th') }
