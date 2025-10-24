@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import pro from '/Photo/pro.png' // ← เปลี่ยนชื่อไฟล์ตามที่คุณวางจริง
 import api from '@/api/api' // 
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.AIVEN_CA_CERT || 'http://localhost:3000';
 const router = useRouter()
 const email = ref('')
 const password = ref('')
