@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import pro from '/Photo/pro.png' // ← เปลี่ยนชื่อไฟล์ตามที่คุณวางจริง
-import api from '@/api/api' // 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const router = useRouter()
@@ -10,12 +9,6 @@ const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
-
-const res = await api.post('/login', { email, password });
-if (res.data.success) {
-  localStorage.setItem('user', JSON.stringify(res.data.user)); // ✅ เก็บ user
-  router.push('/layout'); // หรือ path ที่คุณใช้
-}
 
 
 
