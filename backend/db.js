@@ -7,18 +7,19 @@ const fs = require('fs');
 // const caCert = process.env.CA_CERT_CONTENT; 
 
 
-let sslConfig = { rejectUnauthorized: true };
+let sslConfig = undefined; // เริ่มจากไม่ตั้ง SSL
 
-if (process.env.AIVEN_CA_CERT) {
-  // ✅ ถ้า Render มี cert ใน environment variable
-  sslConfig.ca = process.env.AIVEN_CA_CERT;
-} else {
-  // ✅ ถ้า run ในเครื่อง ใช้ไฟล์ cert จาก local
-  sslConfig.ca = fs.readFileSync('./certificate/ca.pem').toString();
+if (process.env.DB_SSL === '1') {
+  sslConfig = { rejectUnauthorized: true };
+  if (process.env.AIVEN_CA_CERT) {
+    sslConfig.ca = process.env.AIVEN_CA_CERT;
+  } else if (process.env.ALLOW_INSECURE_SSL === '1') {
+    // โหมดผ่อนปรน (เฉพาะชั่วคราว)
+    sslConfig = { rejectUnauthorized: false };
+  }
 }
 
-
-const pool = mysql.createPool({ 
+const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -26,9 +27,5 @@ const pool = mysql.createPool({
   port: process.env.DB_PORT,
   ssl: sslConfig,
   waitForConnections: true,
-  connectionLimit: 10, 
-  queueLimit: 0 
+  connectionLimit: 10,
 });
-
-
-module.exports = pool;
