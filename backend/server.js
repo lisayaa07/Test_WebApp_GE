@@ -2,9 +2,10 @@ require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
 
-const pool = require("./db"); // 👈 รับค่า pool เข้ามา
-const db = pool.promise();
 const app = express();
+const pool = require('./db');      // db.js export เป็น createPool() (ยังไม่ .promise())
+const db = pool.promise();         // ใช้แบบ promise
+const connection = pool; 
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -39,12 +40,16 @@ app.get("/testtt", (req, res) => {
 });
 
 // ✅ API ดึงคณะ
-app.get("/faculty", (req, res) => {
-  connection.query("SELECT faculty_ID, faculty_Name FROM Faculty", (err, results) => {
-    if (err) return res.status(500).send(err);
-    res.json(results);
-  });
+app.get('/faculty', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT faculty_ID, faculty_Name FROM Faculty');
+    res.json(rows);
+  } catch (err) {
+    console.error('SQL /faculty error:', err);   // 👈 ดูใน Render Logs
+    res.status(500).json({ ok:false, message:'DB error', error: err.code || err.message });
+  }
 });
+
 
 // ✅ API ดึงเกรดทั้งหมด
 app.get("/grades", (req, res) => {
