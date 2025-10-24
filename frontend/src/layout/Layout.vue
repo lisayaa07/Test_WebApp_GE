@@ -110,9 +110,8 @@ async function loadFaculties() {
 }
 
 onMounted(async () => {
-  initUserFromLocalStorage()
+  await fetchMeFallbackToLocalStorage()
   await loadFaculties()
-  ready.value = true
 })
 
 const currentFacultyId = computed(() =>
