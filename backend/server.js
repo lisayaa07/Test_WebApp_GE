@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
-const connection = require("./db");e
+const connection = require("./db");
 const pool = require("./db"); // 👈 รับค่า pool เข้ามา
 const db = pool.promise();
 const app = express();
