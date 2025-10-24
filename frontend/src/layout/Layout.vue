@@ -8,7 +8,6 @@ const route = useRoute()
 const sidebarOpen = ref(false)
 
 
-
 // ฟังก์ชันไปหน้าอื่น
 function favorites() { router.push('/favorites') }
 function home() { router.push('/') }
@@ -111,10 +110,8 @@ async function loadFaculties() {
 }
 
 onMounted(async () => {
-  const saved = localStorage.getItem('user');
-  if (saved) {
-    user.value = JSON.parse(saved);
-  }
+  await fetchMeFallbackToLocalStorage()
+  await loadFaculties()
 })
 
 const currentFacultyId = computed(() =>
