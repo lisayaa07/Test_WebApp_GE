@@ -10,8 +10,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-// server.js
-const cors = require('cors')
 app.use(cors({
   origin: [
     'https://test-web-app-ge.vercel.app',
