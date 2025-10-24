@@ -1030,8 +1030,4 @@ app.put('/students/:id', async (req, res) => {
 });
 
 
-// ✅ เริ่ม server
-const port = 3000;
-app.listen(port, () => {
-  console.log(`✅ Server started at http://localhost:${port}`);
-});
+module.exports = app;
