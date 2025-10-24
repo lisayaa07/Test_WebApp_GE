@@ -14,12 +14,14 @@ function home() { router.push('/') }
 
 // state user (ui)
 const user = ref({
-  email: '',
+  id: '',
   student_ID: '',
+  student_Name: '',
   student_level: '',
   faculty_ID: '',
-  name: ''
+  faculty_Name: '',
 })
+
 
 const faculties = ref([])
 
@@ -109,11 +111,52 @@ async function loadFaculties() {
   }
 }
 
-onMounted(async () => {
-  await fetchMeFallbackToLocalStorage()
-  await loadFaculties()
+onMounted(() => {
+  // 1) ถ้ามี Pinia authStore ลองดึงก่อน
+  try {
+    if (authStore?.user) {
+      const u = authStore.user
+      user.value = {
+        id: u.id || '',
+        student_ID: u.student_ID || '',
+        student_Name: u.student_Name || u.name || '',
+        student_level: u.student_level || '',
+        faculty_ID: (u.faculty_ID || u.facultyId || '').toString(),
+        faculty_Name: u.faculty_Name || '',
+      }
+      return
+    }
+  } catch (e) { /* ข้ามไป fallback */ }
+const raw = localStorage.getItem('user')
+  if (raw) {
+    try {
+      const u = JSON.parse(raw)
+      user.value = {
+        id: u.id || '',
+        student_ID: u.student_ID || '',
+        student_Name: u.student_Name || u.name || '',
+        student_level: u.student_level || '',
+        faculty_ID: (u.faculty_ID || u.facultyId || '').toString(),
+        faculty_Name: u.faculty_Name || '',
+      }
+      return
+    } catch {}
+  }
+
+  user.value = {
+    id: localStorage.getItem('userEmail') || '',
+    student_ID: localStorage.getItem('student_ID') || '',
+    student_Name: localStorage.getItem('studentName') || '',
+    student_level: localStorage.getItem('studentLevel') || '',
+    faculty_ID: (localStorage.getItem('facultyId') || '').toString(),
+    faculty_Name: localStorage.getItem('facultyName') || '',
+  }
 })
 
+// ชื่อที่จะแสดง อย่าใช้เฉพาะ name เดียว ให้รองรับ student_Name ด้วย
+const displayName = computed(() =>
+  user.value.student_Name || user.value.name || user.value.id || 'ผู้ใช้'
+)
 const currentFacultyId = computed(() =>
   (user.value.faculty_ID || '').toString().trim()
 )

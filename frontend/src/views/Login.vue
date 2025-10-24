@@ -38,7 +38,7 @@ const onLogin = async (e) => {
     localStorage.setItem('studentLevel', data.user.student_level || '')
     localStorage.setItem('facultyId', data.user.faculty_ID || '')
     localStorage.setItem('facultyName', data.user.faculty_Name || '')
-    localStorage.setItem('studentName',  data.user.name || '') 
+    localStorage.setItem('studentName',  data.user.student_Name || '') 
 
 
 
