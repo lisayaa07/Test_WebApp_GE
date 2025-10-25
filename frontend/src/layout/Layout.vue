@@ -261,7 +261,7 @@ async function logout() {
                             </div>
                             <div>
                                 <div v-if="!isEditingName" class="mt-3 text-xl font-semibold text-[#330000]">
-                                    {{ user.name || '—' }}
+                                    {{ user.student_Name  || '—' }}
                                     <FontAwesomeIcon icon="pen"
                                         class="text-base-200 cursor-pointer ml-2 hover:text-white" title="แก้ไขชื่อ"
                                         @click="startEditingName" />
@@ -277,7 +277,7 @@ async function logout() {
                                     </div>
                                 </div>
 
-                                <div class="text-sm opacity-70">{{ user.email || '—' }}</div>
+                                <div class="text-sm opacity-70">{{ user.id || '—' }}</div>
                                 <div class="text-sm opacity-70">Student ID: {{ user.student_ID || '—' }}</div>
                             </div>
                         </div>
