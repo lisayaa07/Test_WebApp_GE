@@ -15,7 +15,7 @@ const corsOpts = {
 app.use(cors(corsOpts))
 
 // ให้ตอบ preflight ด้วย (OPTIONS)
-app.options('*', cors(corsOpts))
+app.options('(.*)', cors(corsOpts))
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
