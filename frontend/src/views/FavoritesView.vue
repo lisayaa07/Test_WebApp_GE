@@ -1,170 +1,112 @@
 <script setup>
-import Layout from '@/layout/Layout.vue'
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { library } from '@fortawesome/fontawesome-svg-core'
-import { faHeart as farHeart } from '@fortawesome/free-regular-svg-icons'
-import { faHeart as fasHeart } from '@fortawesome/free-solid-svg-icons'
 
-library.add(farHeart, fasHeart)
-
-// Base API URL (ตั้งใน .env: VITE_API_URL)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API_URL = import.meta.env.VITE_API_URL || 'https://test-webapp-ge.onrender.com'
 const router = useRouter()
 
-// อ่านข้อมูลจาก localStorage ตามรูปแบบที่คุณเก็บไว้แล้ว
-const studentId = ref(localStorage.getItem('student_ID') || '')
-const isLoggedIn = computed(() => localStorage.getItem('auth') === '1' && !!studentId.value)
-
-// state สำหรับเพจรายการโปรด
-const groupedFavs = ref([])  // [{ group_ID, group_Name, subjects: [{subject_ID, subject_Name}] }]
-const loading = ref(false)
+// ---------- State ----------
+const user = ref(null)
+const groupedFavorites = ref([])
+const loading = ref(true)
 const errorMsg = ref('')
 
-// helper: headers (ใส่ Authorization ถ้ามี token)
-function authHeaders() {
-  const headers = { 'Content-Type': 'application/json' }
-  const token = localStorage.getItem('token')
-  if (token) headers.Authorization = `Bearer ${token}`
-  return headers
+// ---------- โหลดโปรไฟล์ผู้ใช้ ----------
+async function fetchUser() {
+  try {
+    const res = await fetch(`${API_URL}/me`, {
+      method: 'GET',
+      credentials: 'include',       // ส่งคุกกี้ไปด้วย
+    })
+    const data = await res.json()
+    if (data.ok && data.user) {
+      user.value = data.user
+    } else {
+      router.replace({ name: 'login' })
+    }
+  } catch (err) {
+    console.error('โหลดข้อมูลผู้ใช้ล้มเหลว:', err)
+    router.replace({ name: 'login' })
+  }
 }
 
-// โหลดรายการโปรด (จัดกลุ่ม)
-async function fetchFavoritesGrouped() {
-  if (!isLoggedIn.value) return
-  loading.value = true
-  errorMsg.value = ''
+// ---------- โหลดรายการโปรด ----------
+async function loadFavorites() {
+  if (!user.value?.student_ID) return
   try {
-    const url = `${API_URL}/favorites/grouped?student_id=${encodeURIComponent(studentId.value)}`
-    const res = await fetch(url, {
+    const res = await fetch(`${API_URL}/favorites/grouped?student_id=${encodeURIComponent(user.value.student_ID)}`, {
       method: 'GET',
-      headers: authHeaders()
+      credentials: 'include',
     })
-    if (!res.ok) {
-      let msg = res.statusText
-      try { const j = await res.json(); msg = j?.message || msg } catch (e) {}
-      throw new Error(msg)
-    }
-    const data = await res.json()
-    groupedFavs.value = Array.isArray(data) ? data : []
-  } catch (e) {
-    console.error('❌ โหลด favorites grouped ล้มเหลว', e)
-    errorMsg.value = e.message || 'โหลดรายการโปรดไม่สำเร็จ'
+    if (!res.ok) throw new Error('โหลดรายการโปรดไม่สำเร็จ')
+    groupedFavorites.value = await res.json()
+  } catch (err) {
+    console.error('loadFavorites error:', err)
+    errorMsg.value = 'เกิดข้อผิดพลาดในการโหลดรายการโปรด'
   } finally {
     loading.value = false
   }
 }
 
-// (ตัวเลือก) กดหัวใจลบออกจากรายการโปรด แล้วอัปเดต UI ทันที (optimistic update)
+// ---------- เอาออกจากรายการโปรด ----------
 async function removeFavorite(subjectId) {
-  if (!isLoggedIn.value) {
-    alert('กรุณาเข้าสู่ระบบก่อนจึงจะใช้งานรายการโปรดได้')
-    return
-  }
-  const sid = String(subjectId).trim()
-
-  // เก็บ snapshot เพื่อ rollback หากล้มเหลว
-  const snapshot = JSON.parse(JSON.stringify(groupedFavs.value))
-
+  if (!user.value?.student_ID) return
   try {
-    // optimistic update: ลบจาก state ทันที
-    for (const g of groupedFavs.value) {
-      g.subjects = g.subjects.filter(s => String(s.subject_ID) !== sid)
-    }
-    groupedFavs.value = groupedFavs.value.filter(g => g.subjects.length > 0)
-
-    // call API ลบจริง
-    const url = `${API_URL}/favorites?student_id=${encodeURIComponent(studentId.value)}&subject_id=${encodeURIComponent(sid)}`
-    const res = await fetch(url, {
-      method: 'DELETE',
-      headers: authHeaders()
-    })
-    if (!res.ok) {
-      let msg = res.statusText
-      try { const j = await res.json(); msg = j?.message || msg } catch(e){}
-      throw new Error(msg)
-    }
-  } catch (e) {
-    console.error('❌ remove favorite error', e)
-    // rollback
-    groupedFavs.value = snapshot
-    alert('ลบรายการโปรดไม่สำเร็จ กรุณาลองใหม่')
+    await fetch(
+      `${API_URL}/favorites?student_id=${encodeURIComponent(user.value.student_ID)}&subject_id=${encodeURIComponent(subjectId)}`,
+      { method: 'DELETE', credentials: 'include' }
+    )
+    // โหลดใหม่หลังลบ
+    await loadFavorites()
+  } catch (err) {
+    console.error('removeFavorite error:', err)
   }
 }
 
-// ไปหน้ารีวิวรายวิชา (ถ้าต้องการ)
-function goToReviews(subject) {
-  if (!subject?.subject_ID) return
-  router.push({
-    name: 'reviewsubjects',
-    params: { id: subject.subject_ID },
-    query: { name: subject.subject_Name || '' },
-  })
-}
-
+// ---------- เริ่มทำงาน ----------
 onMounted(async () => {
-  if (!isLoggedIn.value) return
-  await fetchFavoritesGrouped()
+  await fetchUser()
+  await loadFavorites()
 })
 </script>
 
 <template>
-  <Layout>
-    <div class="p-6">
-      <h1 class="text-2xl font-semibold mb-4">รายการโปรดของฉัน</h1>
+  <div class="p-6">
+    <h1 class="text-3xl font-bold mb-6">รายการโปรดของฉัน</h1>
 
-      <!-- ยังไม่ได้ล็อกอิน -->
-      <div v-if="!isLoggedIn" class="text-gray-600">
-        กรุณาเข้าสู่ระบบเพื่อดูรายการโปรด
+    <div v-if="loading" class="text-gray-500">กำลังโหลด...</div>
+    <div v-else-if="errorMsg" class="text-red-500">{{ errorMsg }}</div>
+    <div v-else>
+      <div v-if="groupedFavorites.length === 0" class="text-gray-600">
+        คุณยังไม่มีรายการโปรด
       </div>
 
-      <!-- กำลังโหลด -->
-      <div v-else-if="loading" class="text-gray-600">
-        กำลังโหลดรายการโปรด...
-      </div>
-
-      <!-- เออเรอร์ -->
-      <div v-else-if="errorMsg" class="text-red-600">
-        {{ errorMsg }}
-      </div>
-
-      <!-- รายการโปรดแบบจัดกลุ่ม -->
-      <div v-else>
-        <div v-if="groupedFavs.length === 0" class="text-gray-600">
-          ยังไม่มีวิชาที่ถูกใจ
-        </div>
-
-        <div v-for="group in groupedFavs" :key="group.group_ID" class="mb-6">
-          <h2 class="text-xl font-medium mb-3">{{ group.group_Name || ('หมวด ' + group.group_ID) }}</h2>
-
-          <div class="space-y-2">
-            <div
-              v-for="subject in group.subjects"
-              :key="subject.subject_ID"
-              class="flex items-center justify-between bg-pink rounded-lg px-4 py-2 shadow-sm"
+      <div v-for="group in groupedFavorites" :key="group.group_ID" class="mb-8">
+        <h2 class="text-2xl font-semibold mb-3 text-[#374151]">
+          {{ group.group_Name }}
+        </h2>
+        <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <li
+            v-for="subj in group.subjects"
+            :key="subj.subject_ID"
+            class="p-4 rounded-lg shadow bg-white flex justify-between items-center"
+          >
+            <span>{{ subj.subject_Name }}</span>
+            <button
+              @click="removeFavorite(subj.subject_ID)"
+              class="btn btn-sm bg-red-500 hover:bg-red-600 text-white border-none"
             >
-              <button
-                type="button"
-                class="text-left"
-                @click="goToReviews(subject)"
-                title="ดูรีวิววิชานี้"
-              >
-                {{ subject.subject_ID }} {{ subject.subject_Name }}
-              </button>
-
-              <!-- ปุ่มหัวใจแบบทึบสีเต็มดวง สำหรับ 'ลบออกจากโปรด' -->
-              <button
-                type="button"
-                class="btn btn-ghost btn-circle"
-                @click="removeFavorite(subject.subject_ID)"
-                title="เอาออกจากรายการโปรด"
-              >
-                <FontAwesomeIcon :icon="['fas','heart']" size="xl" class="text-red-500" />
-              </button>
-            </div>
-          </div>
-        </div>
+              ลบ
+            </button>
+          </li>
+        </ul>
       </div>
     </div>
-  </Layout>
+  </div>
 </template>
+
+<style scoped>
+.btn {
+  transition: all 0.2s ease;
+}
+</style>
