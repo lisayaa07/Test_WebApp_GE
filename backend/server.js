@@ -15,7 +15,6 @@ const corsOpts = {
 };
 app.use(cors(corsOpts));
 
-app.use(cors(corsOpts));
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 
@@ -27,13 +26,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-app.use(cors({
-  origin: [
-    'https://test-web-app-ge.vercel.app',
-  ],
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
-}))
 function authRequired(req, res, next) {
   try {
     const token = req.cookies?.auth;
@@ -395,12 +387,13 @@ app.post('/login', async (req, res) => {
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
 
     // --- ออกคุกกี้แบบ httpOnly ข้ามโดเมน (Vercel ↔ Render) ---
-    res.cookie('auth', token, {
-      httpOnly: true,
-      secure: true,         // ต้อง https เท่านั้น
-      sameSite: 'none',     // เพื่อส่งข้ามโดเมน
-      maxAge: 2 * 60 * 60 * 1000 // 2 ชั่วโมง
-    });
+   res.cookie('auth', token, {
+  httpOnly: true,
+  secure: true,           // ✅ ต้องมี
+  sameSite: 'none',       // ✅ ต้องมี เพื่อข้ามโดเมน Render <-> Vercel
+  maxAge: 2 * 60 * 60 * 1000 // 2 ชั่วโมง
+});
+
 
     return res.json({ ok: true, user: payload });
   } catch (err) {
