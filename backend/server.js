@@ -885,10 +885,24 @@ function normalizeSubjectId(x) {
 
 // คืนเฉพาะ subject_ID เพื่อไฮไลต์หัวใจ
 // คืน subject_ID ทั้งหมดที่คนนั้นกดหัวใจ
-app.get('/favorites/ids', async (req, res) => {
+// ✅ ใช้มิดเดิลแวร์ authRequired (คุณมีอยู่แล้วด้านบน)
+function authRequired(req, res, next) {
   try {
-    const studentId = String(req.query.student_id || '').trim();
-    if (!studentId) return res.status(400).json({ ok: false, message: 'student_id required' });
+    const token = req.cookies?.auth;
+    if (!token) return res.status(401).json({ ok: false, message: 'Unauthorized' });
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = user; // แนบข้อมูล user ใน token
+    next();
+  } catch (e) {
+    return res.status(401).json({ ok: false, message: 'Unauthorized' });
+  }
+}
+
+// ✅ ดึงรายการโปรดทั้งหมด (เฉพาะ ID)
+app.get('/favorites/ids', authRequired, async (req, res) => {
+  try {
+    const studentId = String(req.user.student_ID || '').trim();
+    if (!studentId) return res.status(400).json({ ok: false, message: 'student_id missing in token' });
 
     const [rows] = await db.query(
       'SELECT subject_ID FROM Favorite WHERE student_ID = ?',
@@ -901,13 +915,16 @@ app.get('/favorites/ids', async (req, res) => {
   }
 });
 
-// เพิ่มรายการโปรด — ไม่ต้องส่ง group_type (trigger DB จะเติมให้เอง)
-app.post('/favorites', async (req, res) => {
+// ✅ เพิ่มรายการโปรด (ไม่ต้องส่ง student_id แล้ว)
+app.post('/favorites', authRequired, async (req, res) => {
   try {
-    let { student_id, subject_id } = req.body || {};
-    if (!student_id || !subject_id) {
-      return res.status(400).json({ ok: false, message: 'student_id and subject_id required' });
+    const studentId = String(req.user.student_ID || '').trim();
+    const { subject_id } = req.body || {};
+
+    if (!studentId || !subject_id) {
+      return res.status(400).json({ ok: false, message: 'student_id or subject_id missing' });
     }
+
     const sid = normalizeSubjectId(subject_id);
 
     // ดึง group_type ของวิชานั้น
@@ -923,7 +940,7 @@ app.post('/favorites', async (req, res) => {
       `INSERT INTO Favorite (student_ID, subject_ID, group_type)
        VALUES (?, ?, ?)
        ON DUPLICATE KEY UPDATE created_at = CURRENT_TIMESTAMP`,
-      [student_id, sid, row.gt]
+      [studentId, sid, row.gt]
     );
 
     res.json({ ok: true });
@@ -933,19 +950,20 @@ app.post('/favorites', async (req, res) => {
   }
 });
 
-
-// เอาออกจากรายการโปรด
-app.delete('/favorites', async (req, res) => {
+// ✅ เอาออกจากรายการโปรด (ไม่ต้องส่ง student_id แล้ว)
+app.delete('/favorites', authRequired, async (req, res) => {
   try {
-    const studentId = String(req.query.student_id || '').trim();
+    const studentId = String(req.user.student_ID || '').trim();
     const subjectId = normalizeSubjectId(req.query.subject_id);
     if (!studentId || !subjectId) {
-      return res.status(400).json({ ok: false, message: 'student_id and subject_id required' });
+      return res.status(400).json({ ok: false, message: 'student_id or subject_id missing' });
     }
+
     await db.query(
       'DELETE FROM Favorite WHERE student_ID = ? AND subject_ID = ?',
       [studentId, subjectId]
     );
+
     res.json({ ok: true });
   } catch (e) {
     console.error('favorite delete error:', e);
@@ -953,13 +971,12 @@ app.delete('/favorites', async (req, res) => {
   }
 });
 
-// GET /favorites/grouped?student_id=XXXX
-app.get('/favorites/grouped', async (req, res) => {
+// ✅ ดึงรายการโปรดแบบ grouped (ไม่ต้องส่ง student_id)
+app.get('/favorites/grouped', authRequired, async (req, res) => {
   try {
-    const studentId = String(req.query.student_id || '').trim();
-    if (!studentId) return res.status(400).json({ ok: false, message: 'student_id required' });
+    const studentId = String(req.user.student_ID || '').trim();
+    if (!studentId) return res.status(400).json({ ok: false, message: 'student_id missing in token' });
 
-    // ดึงวิชาโปรดของนิสิต พร้อมชื่อหมวดวิชา
     const [rows] = await db.query(`
       SELECT
         s.Group_Type_ID AS group_ID,
@@ -973,7 +990,6 @@ app.get('/favorites/grouped', async (req, res) => {
       ORDER BY s.Group_Type_ID, s.subject_Name
     `, [studentId]);
 
-    // จัดกลุ่มให้เป็น [{ group_ID, group_Name, subjects: [{subject_ID, subject_Name}, ...] }, ...]
     const grouped = [];
     for (const r of rows) {
       let g = grouped.find(x => x.group_ID === r.group_ID);
