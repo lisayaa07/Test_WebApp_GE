@@ -171,47 +171,26 @@ const facultyName = computed(() => {
 /* ---------- logout (ปลอดภัย) ---------- */
 async function logout() {
   try {
-    // 1) บอก backend ให้ล้าง cookie (ต้องมี POST /logout)
+    // 1) แจ้ง backend ให้ลบคุกกี้ออก
     await fetch(`${API_URL}/logout`, {
       method: 'POST',
-      credentials: 'include'
+      credentials: 'include',
     })
   } catch (e) {
     console.warn('logout request failed:', e)
   }
 
   try {
-    // 2) ล้าง Pinia store (ถ้ามี)
-    try {
-      if (authStore && typeof authStore.clear === 'function') {
-        authStore.clear()
-      }
-    } catch (e) {
-      console.warn('authStore clear failed', e)
+    // 2) เคลียร์ state ใน store (ถ้ามี)
+    if (authStore && typeof authStore.clear === 'function') {
+      authStore.clear()
     }
-
-    // 3) ล้าง localStorage keys เก่า (เพื่อความเข้ากัน)
-    const keysToRemove = [
-      'auth', 'userEmail', 'student_ID',
-      'studentLevel', 'facultyName', 'studentName', 'facultyId', 'faculty_ID'
-    ]
-    keysToRemove.forEach(k => localStorage.removeItem(k))
-
-    // 4) unregister service workers (ถ้ามี) เพื่อป้องกัน cache เก่า
-    if ('serviceWorker' in navigator) {
-      try {
-        const regs = await navigator.serviceWorker.getRegistrations()
-        for (const r of regs) {
-          await r.unregister()
-        }
-      } catch (swErr) {
-        console.warn('SW unregister failed', swErr)
-      }
-    }
-  } finally {
-    // 5) redirect to login
-    router.push({ name: 'login' })
+  } catch (e) {
+    console.warn('authStore clear failed', e)
   }
+
+  // 3) พาไปหน้า login
+  router.replace({ name: 'login' })
 }
 </script>
 

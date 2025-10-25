@@ -86,11 +86,36 @@ const router = createRouter({
 })
 
 
-// guard ง่าย ๆ
-router.beforeEach((to, from, next) => {
-  const loggedIn = !!(localStorage.getItem('userEmail') || '').trim()
-  if (to.meta.requiresAuth && !loggedIn) return next({ name: 'login' })
+const API_URL = import.meta.env.VITE_API_URL || 'https://test-webapp-ge.onrender.com'
+
+// แคชสถานะสั้น ๆ เพื่อไม่ให้เรียก /me รัว ๆ ระหว่างนำทาง
+let __authCache = { at: 0, ok: false }
+
+async function checkAuth() {
+  const now = Date.now()
+  if (now - __authCache.at < 3000) { // แคช 3 วินาที
+    return __authCache.ok
+  }
+  try {
+    const res = await fetch(`${API_URL}/me`, {
+      method: 'GET',
+      credentials: 'include', // สำคัญมาก เพื่อส่งคุกกี้ไป-กลับ
+    })
+    const data = await res.json()
+    __authCache = { at: now, ok: !!data?.ok }
+    return !!data?.ok
+  } catch {
+    __authCache = { at: now, ok: false }
+    return false
+  }
+}
+
+router.beforeEach(async (to, from, next) => {
+  if (!to.meta.requiresAuth) return next()
+  const ok = await checkAuth()
+  if (!ok) return next({ name: 'login' })
   next()
 })
+
 
 export default router

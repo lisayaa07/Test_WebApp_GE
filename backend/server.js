@@ -6,13 +6,18 @@ const pool = require('./db');      // db.js export เป็น createPool() (�
 const db = pool.promise();         // ใช้แบบ promise
 const connection = pool; 
 const corsOpts = {
-  origin: 'https://test-web-app-ge.vercel.app',
+  origin: ['https://test-web-app-ge.vercel.app'],
   credentials: true,
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
-}
+  optionsSuccessStatus: 204,
+};
+app.use(cors(corsOpts));
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 
-app.use(cors(corsOpts))
+app.use(cookieParser());
+
 
 
 app.use(express.json());
@@ -26,6 +31,28 @@ app.use(cors({
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
 }))
+function authRequired(req, res, next) {
+  try {
+    const token = req.cookies?.auth;
+    if (!token) return res.status(401).json({ ok: false, message: 'Unauthorized' });
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = user; // แนบ user ให้ route ถัดไปใช้งาน
+    next();
+  } catch (e) {
+    return res.status(401).json({ ok: false, message: 'Unauthorized' });
+  }
+}
+app.get('/me', (req, res) => {
+  try {
+    const token = req.cookies?.auth;
+    if (!token) return res.json({ ok: false });
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    return res.json({ ok: true, user });
+  } catch {
+    return res.json({ ok: false });
+  }
+});
+
 
 
 app.get('/db-health', async (_req, res) => {
@@ -320,8 +347,8 @@ function isNuEmail(v) {
 
 // ในไฟล์ server.js (หา app.post('/login', ...) แล้วแก้ไขทั้งบล็อก)
 
-app.post('/login', async (req, res) => { // 🟢 ต้องประกาศเป็น async function
-  const email = (req.body.email || '').trim().toLowerCase(); // 🟢 ดึงค่า email/password
+app.post('/login', async (req, res) => {
+  const email = (req.body.email || '').trim().toLowerCase();
   const password = req.body.password;
 
   const sql = `
@@ -330,49 +357,61 @@ app.post('/login', async (req, res) => { // 🟢 ต้องประกาศ�
       u.password,
       s.student_Name,
       s.student_level,
-      s.faculty_ID,  
-      f.faculty_Name,    
+      s.faculty_ID,
+      f.faculty_Name,
       s.student_ID
     FROM Users u
-    LEFT JOIN Student s ON s.email = u.email   
+    LEFT JOIN Student s ON s.email = u.email
     LEFT JOIN Faculty f ON f.faculty_ID = s.faculty_ID
     WHERE u.email = ?
     LIMIT 1
   `;
 
-  try { 
-    // 1. รัน Query ด้วย db.query (Promise-based)
-    const [rows] = await db.query(sql, [email]); // 🟢 ใช้ db.query และใช้ [rows] เพื่อรับผลลัพธ์
-    
+  try {
+    const [rows] = await db.query(sql, [email]);  // ← คุณมี db.promise() แล้ว ใช้ต่อได้เลย :contentReference[oaicite:3]{index=3}
     if (!rows.length) {
       return res.status(401).json({ ok: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
     }
-
     const row = rows[0];
+
     const ok = await bcrypt.compare(password, row.password);
-    
     if (!ok) {
       return res.status(401).json({ ok: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
     }
 
-    // 2. สำเร็จ: ส่งโปรไฟล์กลับ
-    return res.json({
-      ok: true,
-      user: {
-        id: row.email,
-        student_ID: row.student_ID || '',
-        student_Name: row.student_Name || '',
-        student_level: row.student_level || '',
-        faculty_ID: row.faculty_ID || '',
-        faculty_Name: row.faculty_Name || ''
-      }
+    // --- สร้าง JWT payload ที่จำเป็นต่อการโชว์ในหน้าเว็บ ---
+    const payload = {
+      email: row.email,
+      student_ID: row.student_ID || '',
+      student_Name: row.student_Name || '',
+      student_level: row.student_level || '',
+      faculty_ID: row.faculty_ID || '',
+      faculty_Name: row.faculty_Name || ''
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
+
+    // --- ออกคุกกี้แบบ httpOnly ข้ามโดเมน (Vercel ↔ Render) ---
+    res.cookie('auth', token, {
+      httpOnly: true,
+      secure: true,         // ต้อง https เท่านั้น
+      sameSite: 'none',     // เพื่อส่งข้ามโดเมน
+      maxAge: 2 * 60 * 60 * 1000 // 2 ชั่วโมง
     });
 
-  } catch (err) { // 3. จัดการ Error (เช่น SQL, DB Connection)
+    return res.json({ ok: true, user: payload });
+  } catch (err) {
     console.error('Login DB error:', err);
     return res.status(500).json({ ok: false, message: 'Database error' });
   }
 });
+
+app.post('/logout', (req, res) => {
+  res.clearCookie('auth', { httpOnly: true, secure: true, sameSite: 'none' });
+  return res.json({ ok: true });
+});
+
+
 
 
 
