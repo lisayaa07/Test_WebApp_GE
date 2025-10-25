@@ -12,19 +12,20 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://test-webapp-ge.onrender
 const router = useRouter()
 
 // -------- state --------
-const user = ref(null) // จะได้ { email, student_ID, ... } จาก /me
-const groupedFavs = ref([]) // [{ group_ID, group_Name, subjects:[{subject_ID, subject_Name}] }]
+const user = ref(null)
+const groupedFavs = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
 
 // -------- helpers --------
 const isLoggedIn = computed(() => !!user.value?.student_ID)
 
+// ✅ โหลดข้อมูลผู้ใช้จาก cookie session
 async function fetchMe() {
   try {
     const res = await fetch(`${API_URL}/me`, {
       method: 'GET',
-      credentials: 'include', // ต้องมีเพื่อส่งคุกกี้
+      credentials: 'include',
     })
     const data = await res.json()
     if (data?.ok && data.user) {
@@ -40,15 +41,14 @@ async function fetchMe() {
   }
 }
 
+// ✅ โหลดรายการโปรด
 async function fetchFavoritesGrouped() {
-  if (!user.value?.student_ID) return
   loading.value = true
   errorMsg.value = ''
   try {
-    const url = `${API_URL}/favorites/grouped?student_id=${encodeURIComponent(user.value.student_ID)}`
-    const res = await fetch(url, {
+    const res = await fetch(`${API_URL}/favorites/grouped`, {
       method: 'GET',
-      credentials: 'include', // ใช้คุกกี้ ไม่ใช้ header token
+      credentials: 'include', // ใช้ cookie
     })
     if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.message || res.statusText)
     const data = await res.json()
@@ -61,46 +61,71 @@ async function fetchFavoritesGrouped() {
   }
 }
 
-// ลบรายการโปรด (optimistic update)
+// ✅ เพิ่มรายการโปรด (ใหม่)
+async function addFavorite(subjectId) {
+  if (!isLoggedIn.value) {
+    alert('กรุณาเข้าสู่ระบบก่อนจึงจะเพิ่มรายการโปรดได้')
+    return
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/favorites`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject_id: String(subjectId).trim() }), // ✅ ไม่ต้องส่ง student_id แล้ว
+    })
+
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}))
+      throw new Error(j?.message || res.statusText)
+    }
+
+    // reload รายการโปรดหลังเพิ่ม
+    await fetchFavoritesGrouped()
+  } catch (e) {
+    console.error('addFavorite error:', e)
+    alert('ไม่สามารถอัปเดตรายการโปรดได้ กรุณาลองใหม่')
+  }
+}
+
+// ✅ ลบรายการโปรด (ไม่ต้องส่ง student_id)
 async function removeFavorite(subjectId) {
-  if (!user.value?.student_ID) {
+  if (!isLoggedIn.value) {
     alert('กรุณาเข้าสู่ระบบก่อนจึงจะใช้งานรายการโปรดได้')
     return
   }
-  const sid = String(subjectId).trim()
-  const snapshot = JSON.parse(JSON.stringify(groupedFavs.value))
 
   try {
-    // อัปเดตหน้าจอทันที
-    for (const g of groupedFavs.value) {
-      g.subjects = g.subjects.filter(s => String(s.subject_ID) !== sid)
+    const url = `${API_URL}/favorites?subject_id=${encodeURIComponent(subjectId)}`
+    const res = await fetch(url, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}))
+      throw new Error(j?.message || res.statusText)
     }
-    groupedFavs.value = groupedFavs.value.filter(g => g.subjects.length > 0)
-
-    // เรียก API ลบจริง
-    const url = `${API_URL}/favorites?student_id=${encodeURIComponent(user.value.student_ID)}&subject_id=${encodeURIComponent(sid)}`
-    const res = await fetch(url, { method: 'DELETE', credentials: 'include' })
-    if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.message || res.statusText)
+    await fetchFavoritesGrouped()
   } catch (e) {
     console.error('❌ remove favorite error', e)
-    groupedFavs.value = snapshot // rollback
     alert('ลบรายการโปรดไม่สำเร็จ กรุณาลองใหม่')
   }
 }
 
+// ไปหน้ารีวิวรายวิชา
 function goToReviews(subject) {
   if (!subject?.subject_ID) return
   router.push({ name: 'reviewsubjects', params: { id: subject.subject_ID }, query: { name: subject.subject_Name || '' } })
 }
 
-// เริ่มทำงาน
+// เริ่มโหลด
 onMounted(async () => {
-  await fetchMe()               // 1) รู้ว่าเป็นใครจากคุกกี้
-  if (isLoggedIn.value) {
-    await fetchFavoritesGrouped() // 2) โหลดรายการโปรดของคนนั้น
-  }
+  await fetchMe()
+  if (isLoggedIn.value) await fetchFavoritesGrouped()
 })
 </script>
+
 
 <template>
   <Layout>

@@ -5,13 +5,16 @@ const app = express();
 const pool = require('./db');      // db.js export เป็น createPool() (ยังไม่ .promise())
 const db = pool.promise();         // ใช้แบบ promise
 const connection = pool; 
+// วางไว้บนสุดก่อน routes ทั้งหมด
 const corsOpts = {
   origin: ['https://test-web-app-ge.vercel.app'],
-  credentials: true,
+  credentials: true,                          
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
   optionsSuccessStatus: 204,
 };
+app.use(cors(corsOpts));
+
 app.use(cors(corsOpts));
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
