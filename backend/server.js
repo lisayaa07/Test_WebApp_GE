@@ -391,6 +391,7 @@ app.post('/login', async (req, res) => {
   httpOnly: true,
   secure: true,           // ✅ ต้องมี
   sameSite: 'none',       // ✅ ต้องมี เพื่อข้ามโดเมน Render <-> Vercel
+   path: '/',  
   maxAge: 2 * 60 * 60 * 1000 // 2 ชั่วโมง
 });
 

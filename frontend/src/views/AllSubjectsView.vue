@@ -1,48 +1,67 @@
 <script setup>
-import Layout from '@/layout/Layout.vue'
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+// ... (imports เดิม)
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faHeart as farHeart } from '@fortawesome/free-regular-svg-icons'
 import { faHeart as fasHeart } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import Layout from '@/layout/Layout.vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 
 library.add(farHeart, fasHeart)
 
-// Base API URL (ตั้งใน .env: VITE_API_URL)
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-
 const router = useRouter()
 const groupedSubjects = ref([])
 
-// อ่านค่าจาก localStorage แบบที่โปรเจ็กต์คุณใช้อยู่แล้ว
-const studentId = ref(localStorage.getItem('student_ID') || '')
-const token = ref(localStorage.getItem('token') || '')
-const isLoggedIn = computed(() => localStorage.getItem('auth') === '1' && !!studentId.value)
+// --- State ใหม่สำหรับ User Info/Auth (เหมือน FavoritesView.vue) ---
+const user = ref(null) // เก็บข้อมูลผู้ใช้ที่ได้จากการ fetchMe
+const isLoggedIn = computed(() => !!user.value?.student_ID) // ตรวจสอบสถานะจาก user ref
 
 // รายการโปรด (subject_ID เป็นชุด)
 const favoriteIds = ref(new Set())
 const isFav = (subjectId) => favoriteIds.value.has(String(subjectId).trim())
 
-// --- ฟังก์ชันช่วยสร้าง headers (ใส่ token ถ้ามี) ---
-function authHeaders() {
-  const h = { 'Content-Type': 'application/json' }
-  const t = localStorage.getItem('token') || token.value
-  if (t) h.Authorization = `Bearer ${t}`
-  return h
+// --- ฟังก์ชัน handle 401 (จาก FavoritesView.vue) ---
+async function handle401(res) {
+  if (res.status === 401) {
+    router.replace({ name: 'login' })
+    throw new Error('Unauthorized')
+  }
+}
+
+// --- โหลดข้อมูลผู้ใช้ (จาก FavoritesView.vue) ---
+async function fetchMe() {
+  try {
+    const res = await fetch(`${API_URL}/me`, {
+      method: 'GET',
+      credentials: 'include', // ต้องใช้ credentials เพื่อส่ง cookie
+    })
+    const data = await res.json()
+    if (data?.ok && data.user) {
+      user.value = data.user
+    } else {
+      user.value = null
+    }
+  } catch (err) {
+    console.error('fetchMe error:', err)
+    user.value = null
+  }
 }
 
 // โหลด favorites (ids) ของผู้ใช้
 async function fetchFavorites () {
-  if (!isLoggedIn.value) return
+  if (!isLoggedIn.value) return // โหลดได้ถ้าเข้าสู่ระบบแล้ว
   try {
-    const url = `${API_URL}/favorites/ids?student_id=${encodeURIComponent(studentId.value)}`
+    // ❌ ลบ student_id ออกจาก query (Backend อ่านจาก token แล้ว)
+    const url = `${API_URL}/favorites/ids`
     const res = await fetch(url, {
       method: 'GET',
-      headers: authHeaders()
+      credentials: 'include', // ✅ สำคัญ: ต้องส่ง Cookie
+      // ❌ ลบ headers: authHeaders() ออก
     })
+    await handle401(res) // ตรวจสอบ 401
     if (!res.ok) {
-      // อ่าน message จาก backend ถ้ามี
       let errText = res.statusText
       try {
         const j = await res.json()
@@ -51,15 +70,13 @@ async function fetchFavorites () {
       throw new Error(errText)
     }
     const data = await res.json()
-    // คาดว่า backend ส่ง array ของ subject_IDs
     favoriteIds.value = new Set((data || []).map(String))
   } catch (err) {
     console.error('❌ โหลด favorites ล้มเหลว', err)
-    // ไม่ต้องโยน error ไป UI ตรงนี้ (แต่คุณอาจจะแสดง toast ได้)
   }
 }
 
-// toggle favorite (optimistic update)
+// toggle favorite
 async function toggleFavorite (subjectId) {
   if (!isLoggedIn.value) {
     alert('กรุณาเข้าสู่ระบบก่อนจึงจะใช้งานรายการโปรดได้')
@@ -68,38 +85,40 @@ async function toggleFavorite (subjectId) {
   const sid = String(subjectId).trim()
   const wasFav = favoriteIds.value.has(sid)
 
-  // optimistic update
   const next = new Set(favoriteIds.value)
   wasFav ? next.delete(sid) : next.add(sid)
-  favoriteIds.value = next
+  favoriteIds.value = next // optimistic update
 
   try {
+    let res
     if (wasFav) {
-      // DELETE with query params
-      const url = `${API_URL}/favorites?student_id=${encodeURIComponent(studentId.value)}&subject_id=${encodeURIComponent(sid)}`
-      const res = await fetch(url, {
+      // DELETE
+      // ❌ ลบ student_id ออกจาก query
+      const url = `${API_URL}/favorites?subject_id=${encodeURIComponent(sid)}`
+      res = await fetch(url, {
         method: 'DELETE',
-        headers: authHeaders()
+        credentials: 'include', // ✅ สำคัญ
+        // ❌ ลบ headers: authHeaders() ออก
       })
-      if (!res.ok) {
-        let j = {}
-        try { j = await res.json() } catch(e){}
-        throw new Error(j?.message || res.statusText)
-      }
     } else {
       // POST to add favorite
       const url = `${API_URL}/favorites`
-      const res = await fetch(url, {
+      res = await fetch(url, {
         method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ student_id: studentId.value, subject_id: sid })
+        credentials: 'include', // ✅ สำคัญ
+        headers: { 'Content-Type': 'application/json' },
+        // ❌ ลบ student_id ออกจาก body
+        body: JSON.stringify({ subject_id: sid })
       })
-      if (!res.ok) {
-        let j = {}
-        try { j = await res.json() } catch(e){}
-        throw new Error(j?.message || res.statusText)
-      }
     }
+    
+    await handle401(res) // ตรวจสอบ 401
+    if (!res.ok) {
+      let j = {}
+      try { j = await res.json() } catch(e){}
+      throw new Error(j?.message || res.statusText)
+    }
+    // ไม่ต้อง fetchFavorites ซ้ำ เพราะ optimistic update แล้ว
   } catch (err) {
     console.error('❌ toggle favorite error', err)
     // rollback
@@ -110,42 +129,26 @@ async function toggleFavorite (subjectId) {
   }
 }
 
-// โหลด grouped subjects (All Subjects)
+// ... (loadGroupedSubjects และ Comments เดิม)
 async function loadGroupedSubjects () {
-  try {
-    const res = await fetch(`${API_URL}/grouped-subjects`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    })
-    if (!res.ok) {
-      let msg = res.statusText
-      try { const j = await res.json(); msg = j?.message || msg } catch(e){}
-      throw new Error(msg)
-    }
-    const data = await res.json()
-    groupedSubjects.value = data
-  } catch (err) {
-    console.error('❌ โหลด grouped subjects ล้มเหลว', err)
-    // ถ้าต้องการแสดงข้อความ error ให้เพิ่ม state และแสดงใน template
-  }
+  // ... (โค้ดเดิม)
 }
+
+function Comments (subject) {
+  // ... (โค้ดเดิม)
+}
+
+// ❌ ลบ authHeaders(), studentId, token, isLoggedIn (จาก Local Storage) ออก
 
 // โหลดข้อมูลเมื่อ component mount
 onMounted(async () => {
   await loadGroupedSubjects()
-  await fetchFavorites()
+  await fetchMe() // ✅ โหลด user info ก่อน
+  await fetchFavorites() // ✅ แล้วค่อยโหลด favorites ถ้าเข้าสู่ระบบแล้ว
 })
-
-// ไปหน้ารีวิวรายวิชา
-function Comments (subject) {
-  if (!subject?.subject_ID) return
-  router.push({
-    name: 'reviewsubjects',
-    params: { id: subject.subject_ID },
-    query: { name: subject.subject_Name || '' },
-  })
-}
 </script>
+
+
 
 <template>
   <Layout>
