@@ -142,9 +142,9 @@ function Comments (subject) {
 
 // โหลดข้อมูลเมื่อ component mount
 onMounted(async () => {
-  await loadGroupedSubjects()
-  await fetchMe() // ✅ โหลด user info ก่อน
-  await fetchFavorites() // ✅ แล้วค่อยโหลด favorites ถ้าเข้าสู่ระบบแล้ว
+  await loadGroupedSubjects()
+  await fetchMe() // 1. โหลดข้อมูลผู้ใช้ (อ่าน Cookie)
+  await fetchFavorites() // 2. โหลด Favorites (ใช้ Cookie ที่ได้มา)
 })
 </script>
 
@@ -180,11 +180,11 @@ onMounted(async () => {
                 @click="toggleFavorite(subject.subject_ID)"
                 :title="isFav(subject.subject_ID) ? 'เอาออกจากรายการโปรด' : 'เพิ่มเป็นรายการโปรด'">
                 <FontAwesomeIcon
-                  :icon="isFav(subject.subject_ID) ? ['fas','heart'] : ['far','heart']"
+                 :icon="isFav(subject.subject_ID) ? ['fas','heart'] : ['far','heart']"
                   size="xl"
                   :class="isFav(subject.subject_ID)
-                    ? 'text-red-500 transition-transform duration-150 scale-110'
-                    : 'text-red-500/40 hover:text-red-500 transition-colors duration-150'"
+                  ? 'text-red-500 transition-transform duration-150 scale-110'
+                  : 'text-red-500/40 hover:text-red-500 transition-colors duration-150'"
                 />
               </button>
             </div>
