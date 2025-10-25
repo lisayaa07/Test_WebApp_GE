@@ -75,7 +75,8 @@ const onLogin = async (e) => {
               v-model="email"
               class="input input-bordered w-full bg-white mt-2"
               placeholder="email"
-              pattern="^[^@\\s]+@nu\\.ac\\.th$"
+              pattern="^[^@\s]+@nu\.ac\.th$"
+
               required
             />
           </label>
