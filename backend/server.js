@@ -20,7 +20,7 @@ const jwt = require('jsonwebtoken');
 
 app.use(cookieParser());
 
-
+app.set('trust proxy', 1);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -31,7 +31,7 @@ function authRequired(req, res, next) {
     const token = req.cookies?.auth;
     if (!token) return res.status(401).json({ ok: false, message: 'Unauthorized' });
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = user; // แนบ user ให้ route ถัดไปใช้งาน
+    req.user = user;
     next();
   } catch (e) {
     return res.status(401).json({ ok: false, message: 'Unauthorized' });
