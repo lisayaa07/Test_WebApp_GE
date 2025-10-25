@@ -883,20 +883,7 @@ function normalizeSubjectId(x) {
 }
 
 
-// คืนเฉพาะ subject_ID เพื่อไฮไลต์หัวใจ
-// คืน subject_ID ทั้งหมดที่คนนั้นกดหัวใจ
-// ✅ ใช้มิดเดิลแวร์ authRequired (คุณมีอยู่แล้วด้านบน)
-function authRequired(req, res, next) {
-  try {
-    const token = req.cookies?.auth;
-    if (!token) return res.status(401).json({ ok: false, message: 'Unauthorized' });
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = user; // แนบข้อมูล user ใน token
-    next();
-  } catch (e) {
-    return res.status(401).json({ ok: false, message: 'Unauthorized' });
-  }
-}
+
 
 // ✅ ดึงรายการโปรดทั้งหมด (เฉพาะ ID)
 app.get('/favorites/ids', authRequired, async (req, res) => {
