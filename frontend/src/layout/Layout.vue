@@ -238,7 +238,7 @@ async function logout() {
                     title="รายการโปรด">
                     <FontAwesomeIcon icon="heart-circle-check" size="2xl" class="text-red-500 cursor-pointer" />
                 </button>
-                <span class="text-2xl font-semibold">{{ user.Student_Name || '—' }}</span>
+                <span class="text-2xl font-semibold">{{ user.student_Name || '—' }}</span>
                 <div class="dropdown dropdown-end">
                     <div tabindex="0" role="button" class="btn btn-ghost btn-circle">
                         <FontAwesomeIcon icon="chevron-down" size="xl" />
