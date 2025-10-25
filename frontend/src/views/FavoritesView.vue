@@ -16,16 +16,27 @@ const user = ref(null)
 const groupedFavs = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
+const busy = ref(false) // กันดับเบิลคลิก
 
 const isLoggedIn = computed(() => !!user.value?.student_ID)
+
+// ---------- utils ----------
+async function handle401(res) {
+  if (res.status === 401) {
+    // session หาย/คุกกี้หมดอายุ
+    router.replace({ name: 'login' })
+    throw new Error('Unauthorized')
+  }
+}
 
 // ---------- โหลดข้อมูลผู้ใช้ ----------
 async function fetchMe() {
   try {
     const res = await fetch(`${API_URL}/me`, {
       method: 'GET',
-      credentials: 'include',       // ✅ ต้องมีทุกครั้ง
+      credentials: 'include',
     })
+    await handle401(res)
     const data = await res.json()
     if (data?.ok && data.user) {
       user.value = data.user
@@ -47,8 +58,9 @@ async function fetchFavoritesGrouped() {
   try {
     const res = await fetch(`${API_URL}/favorites/grouped`, {
       method: 'GET',
-      credentials: 'include',       // ✅ ใช้ cookie แทน token
+      credentials: 'include',
     })
+    await handle401(res)
     if (!res.ok)
       throw new Error((await res.json().catch(() => ({})))?.message || res.statusText)
     const data = await res.json()
@@ -63,43 +75,51 @@ async function fetchFavoritesGrouped() {
 
 // ---------- เพิ่มรายการโปรด ----------
 async function addFavorite(subjectId) {
-  if (!isLoggedIn.value) {
-    alert('กรุณาเข้าสู่ระบบก่อนจึงจะเพิ่มรายการโปรดได้')
+  if (!isLoggedIn.value || busy.value) {
+    if (!isLoggedIn.value) alert('กรุณาเข้าสู่ระบบก่อนจึงจะเพิ่มรายการโปรดได้')
     return
   }
+  busy.value = true
   try {
     const res = await fetch(`${API_URL}/favorites`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject_id: String(subjectId).trim() }) // ✅ ไม่ต้องส่ง student_id
+      body: JSON.stringify({ subject_id: String(subjectId).trim() })
     })
+    await handle401(res)
     if (!res.ok)
       throw new Error((await res.json().catch(() => ({})))?.message || res.statusText)
     await fetchFavoritesGrouped()
   } catch (e) {
     console.error('addFavorite error:', e)
     alert('ไม่สามารถเพิ่มรายการโปรดได้ กรุณาลองใหม่')
+  } finally {
+    busy.value = false
   }
 }
 
 // ---------- ลบรายการโปรด ----------
 async function removeFavorite(subjectId) {
-  if (!isLoggedIn.value) {
-    alert('กรุณาเข้าสู่ระบบก่อนจึงจะใช้งานรายการโปรดได้')
+  if (!isLoggedIn.value || busy.value) {
+    if (!isLoggedIn.value) alert('กรุณาเข้าสู่ระบบก่อนจึงจะใช้งานรายการโปรดได้')
     return
   }
+  busy.value = true
   try {
     const res = await fetch(`${API_URL}/favorites?subject_id=${encodeURIComponent(subjectId)}`, {
       method: 'DELETE',
       credentials: 'include',
     })
+    await handle401(res)
     if (!res.ok)
       throw new Error((await res.json().catch(() => ({})))?.message || res.statusText)
     await fetchFavoritesGrouped()
   } catch (e) {
     console.error('❌ remove favorite error', e)
     alert('ลบรายการโปรดไม่สำเร็จ กรุณาลองใหม่')
+  } finally {
+    busy.value = false
   }
 }
 
@@ -145,14 +165,28 @@ onMounted(async () => {
                 {{ subject.subject_ID }} {{ subject.subject_Name }}
               </button>
 
-              <button
-                type="button"
-                class="btn btn-ghost btn-circle"
-                @click="removeFavorite(subject.subject_ID)"
-                title="เอาออกจากรายการโปรด"
-              >
-                <FontAwesomeIcon :icon="['fas','heart']" size="xl" class="text-red-500" />
-              </button>
+              <div class="flex gap-2">
+                <!-- ปุ่มเพิ่มโปรด (ถ้าคุณต้องการให้มีในหน้านี้ด้วย) -->
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-circle"
+                  :disabled="busy"
+                  @click="addFavorite(subject.subject_ID)"
+                  title="เพิ่มในรายการโปรด"
+                >
+                  <FontAwesomeIcon :icon="['far','heart']" size="xl" />
+                </button>
+
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-circle"
+                  :disabled="busy"
+                  @click="removeFavorite(subject.subject_ID)"
+                  title="เอาออกจากรายการโปรด"
+                >
+                  <FontAwesomeIcon :icon="['fas','heart']" size="xl" class="text-red-500" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
