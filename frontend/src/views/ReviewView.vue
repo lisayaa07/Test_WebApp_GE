@@ -217,7 +217,8 @@ async function onSubmit() {
 
 <template>
     <Layout>
-        <form class="p-6 space-y-6" @submit="onSubmit">
+        <!-- <form class="p-6 space-y-6" @submit="onSubmit" @submit.prevent="handleSubmit"> -->
+            <form class="p-6 space-y-6" >
 
             <div class="flex gap-10">
                 <fieldset class="fieldset">
@@ -357,7 +358,7 @@ async function onSubmit() {
             <div class="bg-[#6495ED]/35 p-6 rounded-3xl">
                 <fieldset class="pl-5">
                     <legend>
-                        4.นิสิตต้องการให้มีการ <span style="color:red;">////</span> เข้าห้องเรียนอย่างไร 
+                        4.นิสิตต้องการให้มีการ <span style="color:red;">เช็คชื่อ</span> เข้าห้องเรียนอย่างไร 
                         <span style="color:red;">*</span>
                     </legend>
                     <div class="pl-5">
@@ -479,7 +480,7 @@ async function onSubmit() {
 
             <!-- ปุ่ม submit -->
             <div class="text-center">
-                <button type="submit" onclick="" class="btn bg-blue-900 hover:bg-[#192F4E] text-white text-xl mt-3 p-6">Submit</button>
+                <button type="submit" class="btn bg-blue-900 hover:bg-[#192F4E] text-white text-xl mt-3 p-6">Submit</button>
             </div>
         </form>
     </Layout>
