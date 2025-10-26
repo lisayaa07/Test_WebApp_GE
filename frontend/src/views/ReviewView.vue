@@ -357,7 +357,7 @@ async function onSubmit() {
             <div class="bg-[#6495ED]/35 p-6 rounded-3xl">
                 <fieldset class="pl-5">
                     <legend>
-                        4.นิสิตต้องการให้มีการ <span style="color:red;">เช็คชื่อ</span> เข้าห้องเรียนอย่างไร 
+                        4.นิสิตต้องการให้มีการ <span style="color:red;">////</span> เข้าห้องเรียนอย่างไร 
                         <span style="color:red;">*</span>
                     </legend>
                     <div class="pl-5">
