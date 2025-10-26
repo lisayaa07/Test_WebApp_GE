@@ -6,6 +6,8 @@ import { useRouter } from 'vue-router'
 const API_URL = import.meta.env.VITE_API_URL || 'https://test-webapp-ge.onrender.com'
 const router = useRouter()
 
+alert('กรุณากรอกข้อมูลรีวิวให้ครบถ้วนก่อนกด Submit')
+
 // -------------------------
 // 1) State สำหรับข้อมูลจาก backend
 // -------------------------
