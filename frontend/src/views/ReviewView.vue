@@ -155,63 +155,63 @@ function resetForm() {
 // -------------------------
 async function onSubmit() {
   // ✅ ตรวจ validation เบื้องต้น
-  if (!studentId.value) return alert('กรุณากรอกรหัสนิสิต')
-  if (!selectedStudentLevel.value) return alert('กรุณาเลือกชั้นปี')
-  if (!selectedFaculty.value) return alert('กรุณาเลือกคณะ')
-  if (!selectedGroupType.value) return alert('กรุณาเลือกหมวดวิชา')
-  if (!selectedSubject.value) return alert('กรุณาเลือกรายวิชา')
+//   if (!studentId.value) return alert('กรุณากรอกรหัสนิสิต')
+//   if (!selectedStudentLevel.value) return alert('กรุณาเลือกชั้นปี')
+//   if (!selectedFaculty.value) return alert('กรุณาเลือกคณะ')
+//   if (!selectedGroupType.value) return alert('กรุณาเลือกหมวดวิชา')
+//   if (!selectedSubject.value) return alert('กรุณาเลือกรายวิชา')
 
-  const payload = {
-    student_id: studentId.value,
-    subjectGroup: selectedGroupType.value,
-    student_level: selectedStudentLevel.value,
-    faculty: selectedFaculty.value,
-    interestd: Array.isArray(selectedInterestd.value)
-      ? selectedInterestd.value.join(',')
-      : selectedInterestd.value,
-    subject: selectedSubject.value,
-    groupwork: selectedGroupwork.value,
-    solowork: selectedsolowork.value,
-    exam: selectedexam.value,
-    attendance: selectedattendance.value,
-    instruction: Array.isArray(selectedinstruction.value)
-      ? selectedinstruction.value.join(',')
-      : selectedinstruction.value,
-    present: selectedpresent.value,
-    experience: selectedexperience.value,
-    challenge: selectedchallenge.value,
-    time: selectedtime.value,
-    grade: selectedGrade.value,
-    review: reviewText.value,
-  }
+//   const payload = {
+//     student_id: studentId.value,
+//     subjectGroup: selectedGroupType.value,
+//     student_level: selectedStudentLevel.value,
+//     faculty: selectedFaculty.value,
+//     interestd: Array.isArray(selectedInterestd.value)
+//       ? selectedInterestd.value.join(',')
+//       : selectedInterestd.value,
+//     subject: selectedSubject.value,
+//     groupwork: selectedGroupwork.value,
+//     solowork: selectedsolowork.value,
+//     exam: selectedexam.value,
+//     attendance: selectedattendance.value,
+//     instruction: Array.isArray(selectedinstruction.value)
+//       ? selectedinstruction.value.join(',')
+//       : selectedinstruction.value,
+//     present: selectedpresent.value,
+//     experience: selectedexperience.value,
+//     challenge: selectedchallenge.value,
+//     time: selectedtime.value,
+//     grade: selectedGrade.value,
+//     review: reviewText.value,
+//   }
 
-  try {
-    submitLoading.value = true
-    errorMsg.value = ''
-    successMsg.value = ''
+//   try {
+//     submitLoading.value = true
+//     errorMsg.value = ''
+//     successMsg.value = ''
 
-    const res = await fetch(`${API_URL}/submit-form`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
+//     const res = await fetch(`${API_URL}/submit-form`, {
+//       method: 'POST',
+//       credentials: 'include',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify(payload)
+//     })
 
-    const j = await res.json().catch(() => null)
-    if (!res.ok) throw new Error(j?.message || res.statusText || 'บันทึกไม่สำเร็จ')
+//     const j = await res.json().catch(() => null)
+//     if (!res.ok) throw new Error(j?.message || res.statusText || 'บันทึกไม่สำเร็จ')
 
-    // ✅ สำเร็จ
-    successMsg.value = 'บันทึกรีวิวเรียบร้อยแล้ว!'
+//     // ✅ สำเร็จ
+    successMsg.value = 'บันทึกรีวิวเรียบร้ล้ว!'
     resetForm() // ล้างค่าทั้งหมด
     // ✅ refresh หน้า review (เคลียร์ทุก v-model)
     router.replace({ name: '/allsubjects' })
-  } catch (err) {
-    console.error('submit error:', err)
-    errorMsg.value = err?.message || 'เกิดข้อผิดพลาดระหว่างบันทึก'
-    alert(errorMsg.value)
-  } finally {
-    submitLoading.value = false
-  }
+//   } catch (err) {
+//     console.error('submit error:', err)
+//     errorMsg.value = err?.message || 'เกิดข้อผิดพลาดระหว่างบันทึก'
+//     alert(errorMsg.value)
+//   } finally {
+//     submitLoading.value = false
+//   }
 }
 </script>
 
@@ -479,7 +479,7 @@ async function onSubmit() {
 
             <!-- ปุ่ม submit -->
             <div class="text-center">
-                <button type="submit" class="btn bg-blue-900 hover:bg-[#192F4E] text-white text-xl mt-3 p-6">Submit</button>
+                <button type="submit" onclick="" class="btn bg-blue-900 hover:bg-[#192F4E] text-white text-xl mt-3 p-6">Submit</button>
             </div>
         </form>
     </Layout>
