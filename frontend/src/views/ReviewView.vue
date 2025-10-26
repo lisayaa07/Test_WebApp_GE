@@ -204,7 +204,7 @@ async function onSubmit() {
     successMsg.value = 'บันทึกรีวิวเรียบร้อยแล้ว!'
     resetForm() // ล้างค่าทั้งหมด
     // ✅ refresh หน้า review (เคลียร์ทุก v-model)
-    router.replace({ name: 'review' })
+    router.replace({ name: '/ReviewView' })
   } catch (err) {
     console.error('submit error:', err)
     errorMsg.value = err?.message || 'เกิดข้อผิดพลาดระหว่างบันทึก'
