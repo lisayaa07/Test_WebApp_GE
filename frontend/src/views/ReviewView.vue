@@ -174,6 +174,14 @@ async function onSubmit() {
         review: reviewText.value
     }
 
+    // ---------- ฟังก์ชันรีเซ็ตฟอร์ม ----------
+        function resetForm() {
+        Object.keys(form).forEach(k => {
+            if (Array.isArray(form[k])) form[k] = []
+            else form[k] = ''
+        })
+        }
+
     try {
         submitLoading.value = true
         errorMsg.value = ''
@@ -191,10 +199,10 @@ async function onSubmit() {
             throw new Error(j?.message || res.statusText || 'บันทึกไม่สำเร็จ')
         }
 
-        successMsg.value = j?.message || 'บันทึกสำเร็จ 🎉'
-        alert(successMsg.value)
-        // ถ้าต้องการ reset form ให้เรียก resetForm()
-        // resetForm()
+        successMsg.value = 'บันทึกรีวิวเรียบร้อยแล้ว!'
+        resetForm() // เคลียร์ค่าทั้งหมด
+        // 👉 เด้งไปหน้า ReviewView (รีเฟรชเพจเดิมให้แน่ใจว่าเคลียร์จริง)
+        router.replace({ name: 'review' })
     } catch (err) {
         console.error('submit error:', err)
         errorMsg.value = err?.message || 'เกิดข้อผิดพลาดระหว่างบันทึก'
