@@ -86,25 +86,37 @@ const router = createRouter({
 })
 
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://test-webapp-ge.onrender.com'
+const API_URL =
+  import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 
+  'https://test-webapp-ge.onrender.com'
 
-// แคชสถานะสั้น ๆ เพื่อไม่ให้เรียก /me รัว ๆ ระหว่างนำทาง
+// 🔹 แคชสถานะสั้น ๆ เพื่อไม่ให้เรียก /me รัว ๆ ระหว่างนำทาง
 let __authCache = { at: 0, ok: false }
 
 async function checkAuth() {
   const now = Date.now()
-  if (now - __authCache.at < 3000) { // แคช 3 วินาที
+  if (now - __authCache.at < 3000) {
     return __authCache.ok
   }
+
   try {
     const res = await fetch(`${API_URL}/me`, {
       method: 'GET',
-      credentials: 'include', // สำคัญมาก เพื่อส่งคุกกี้ไป-กลับ
+      credentials: 'include', // ✅ สำคัญมาก
     })
+
+    // 🔹 Debug log — ช่วยดูว่า cookie ถูกส่งไหม
+    console.log(`[checkAuth] Calling /me at: ${API_URL}/me`)
+    console.log(`[checkAuth] Response status:`, res.status)
+
     const data = await res.json()
+    console.log(`[checkAuth] Response data:`, data)
+
+    // 🔹 เก็บผลไว้ใน cache 3 วิ
     __authCache = { at: now, ok: !!data?.ok }
     return !!data?.ok
-  } catch {
+  } catch (err) {
+    console.error('[checkAuth] Error calling /me:', err)
     __authCache = { at: now, ok: false }
     return false
   }
