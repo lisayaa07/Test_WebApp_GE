@@ -15,6 +15,11 @@ const corsOpts = {
 };
 app.use(cors(corsOpts));
 
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
+
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 
