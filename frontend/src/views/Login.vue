@@ -3,7 +3,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import pro from '/Photo/pro.png'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://test-webapp-ge.onrender.com'
+const API_URL = '/api'  // ✅ ใช้ proxy แทนเรียกตรง
+
 const router = useRouter()
 
 const email = ref('')
