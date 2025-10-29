@@ -603,11 +603,11 @@ app.get('/grouped-subjects', async (req, res) => {
     const grouped = [];
 
     rows.forEach(row => {
-      let group = grouped.find(g => g.group_ID === row.GroupType_ID);
+      let group = grouped.find(g => g.group_ID === row.groupType_ID);
       if (!group) {
         group = {
-          group_ID: row.GroupType_ID,
-          group_Name: row.GroupType_Name,
+          group_ID: row.groupType_ID,
+          group_Name: row.groupType_Name,
           subjects: []
         };
         grouped.push(group);
