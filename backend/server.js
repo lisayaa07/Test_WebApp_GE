@@ -4,6 +4,7 @@ const cors = require("cors");
 const app = express();
 
 const db = require('./db');   // ✅ ใช้ db จาก mysql2/promise โดยตรง
+app.set('trust proxy', 1);
 const corsOpts = {
   origin: ['https://test-web-app-ge.vercel.app'], // ✅ เหลืออันเดียว
   credentials: true,
@@ -71,20 +72,12 @@ app.post('/login', async (req, res) => {
   try {
     const email = (req.body.email || '').trim().toLowerCase();
     const password = req.body.password;
-
-    if (!email || !password) {
+    if (!email || !password)
       return res.status(400).json({ ok: false, message: 'กรอกอีเมลและรหัสผ่านให้ครบ' });
-    }
 
     const sql = `
-      SELECT
-        u.email,
-        u.password,
-        s.student_Name,
-        s.student_level,
-        s.faculty_ID,
-        f.faculty_Name,
-        s.student_ID
+      SELECT u.email, u.password, s.student_Name, s.student_level, 
+             s.faculty_ID, f.faculty_Name, s.student_ID
       FROM Users u
       LEFT JOIN Student s ON s.email = u.email
       LEFT JOIN Faculty f ON f.faculty_ID = s.faculty_ID
@@ -92,15 +85,13 @@ app.post('/login', async (req, res) => {
       LIMIT 1
     `;
     const [rows] = await db.query(sql, [email]);
-    if (!rows.length) {
+    if (!rows.length)
       return res.status(401).json({ ok: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
-    }
 
     const user = rows[0];
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
+    if (!isMatch)
       return res.status(401).json({ ok: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
-    }
 
     const payload = {
       email: user.email,
