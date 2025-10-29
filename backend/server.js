@@ -68,6 +68,70 @@ app.get('/db-health', async (_req, res) => {
   }
 });
 
+// ✅ API ล็อกอิน
+const bcrypt = require('bcryptjs');
+
+app.post('/login', async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+    const password = req.body.password;
+
+    if (!email || !password) {
+      return res.status(400).json({ ok: false, message: 'กรอกอีเมลและรหัสผ่านให้ครบ' });
+    }
+
+    const sql = `
+      SELECT
+        u.email,
+        u.password,
+        s.student_Name,
+        s.student_level,
+        s.faculty_ID,
+        f.faculty_Name,
+        s.student_ID
+      FROM Users u
+      LEFT JOIN Student s ON s.email = u.email
+      LEFT JOIN Faculty f ON f.faculty_ID = s.faculty_ID
+      WHERE u.email = ?
+      LIMIT 1
+    `;
+    const [rows] = await db.query(sql, [email]);
+    if (!rows.length) {
+      return res.status(401).json({ ok: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
+    }
+
+    const user = rows[0];
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ ok: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
+    }
+
+    const payload = {
+      email: user.email,
+      student_ID: user.student_ID || '',
+      student_Name: user.student_Name || '',
+      student_level: user.student_level || '',
+      faculty_ID: user.faculty_ID || '',
+      faculty_Name: user.faculty_Name || ''
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
+
+    res.cookie('auth', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+      maxAge: 2 * 60 * 60 * 1000
+    });
+
+    console.log('✅ Login success:', email);
+    return res.json({ ok: true, user: payload });
+  } catch (err) {
+    console.error('❌ Login error:', err);
+    return res.status(500).json({ ok: false, message: 'Database error', error: err.message });
+  }
+});
 
 
 
