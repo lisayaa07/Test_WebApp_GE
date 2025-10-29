@@ -396,15 +396,14 @@ app.post('/login', async (req, res) => {
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
 
-    // --- ออกคุกกี้แบบ httpOnly ข้ามโดเมน (Vercel ↔ Render) ---
-    res.cookie('auth', token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none',
-        domain: '.genuproject.site',  // ✅ ใช้ได้ถ้ามี domain จริง
-        path: '/',
-        maxAge: 2 * 60 * 60 * 1000
-      });
+res.cookie('auth', token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'none',
+  path: '/',                     // ✅ อย่าใส่ domain
+  maxAge: 2 * 60 * 60 * 1000
+});
+
 
 
 
