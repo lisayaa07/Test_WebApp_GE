@@ -602,6 +602,7 @@ app.get('/grouped-subjects', async (req, res) => {
     const grouped = [];
 
     rows.forEach(row => {
+      // ✅ ใช้ชื่อคอลัมน์ตรงกับ DB
       let group = grouped.find(g => g.group_ID === row.GroupType_ID);
       if (!group) {
         group = {
@@ -626,6 +627,7 @@ app.get('/grouped-subjects', async (req, res) => {
     res.status(500).json({ ok: false, message: 'Database Error', error: err.message });
   }
 });
+
 
 // ✅ ดึงรีวิวทั้งหมดของวิชานั้น
 app.get('/subjects/:id/reviews', async (req, res) => {
