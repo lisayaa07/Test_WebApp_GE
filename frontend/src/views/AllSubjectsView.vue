@@ -143,7 +143,8 @@ async function loadGroupedSubjects () {
       throw new Error(msg)
     }
     const data = await res.json()
-    groupedSubjects.value = data
+    groupedSubjects.value = data.grouped || []
+
   } catch (err) {
     console.error('❌ โหลด grouped subjects ล้มเหลว', err)
     // ถ้าต้องการแสดงข้อความ error ให้เพิ่ม state และแสดงใน template

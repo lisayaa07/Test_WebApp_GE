@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 
-const db = require('./db');   // ✅ ใช้ db จาก mysql2/promise โดยตรง
+const db = require('./db');  
 app.set('trust proxy', 1);
 const corsOpts = {
   origin: ['https://test-web-app-ge.vercel.app'], // ✅ เหลืออันเดียว
@@ -593,7 +593,6 @@ app.get('/grouped-subjects', async (req, res) => {
       g.GroupType_Name,
       s.Subject_ID,
       s.Subject_Name
-
       FROM Group_Type g
       LEFT JOIN Subject s ON s.GroupType_ID = g.GroupType_ID
       ORDER BY g.GroupType_ID, s.subject_Name
