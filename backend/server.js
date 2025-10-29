@@ -94,16 +94,7 @@ app.get('/faculty', async (req, res) => {
 });
 
 
-// ✅ API ดึงเกรดทั้งหมด (แก้เป็น async/await)
-app.get("/grades", async (req, res) => {
-  try {
-    const [results] = await db.query("SELECT grade_ID, grade_Name FROM Grade_map");
-    res.json(results);
-  } catch (err) {
-    console.error("❌ SQL ERROR /grades:", err);
-    res.status(500).json({ ok: false, message: "ดึงเกรดล้มเหลว", error: err.message });
-  }
-});
+
 
 // ✅ API วิชา - ดึงเฉพาะกลุ่มวิชา (distinct group_type)
 app.get("/subject-groups", async (req, res) => {
@@ -129,16 +120,6 @@ app.get("/grades", async (req, res) => {
   }
 });
 
-// ✅ API วิชา - ดึงเฉพาะกลุ่มวิชา (distinct group_type)
-app.get("/subject-groups", async (req, res) => {
-  try {
-    const [results] = await db.query("SELECT GroupType_ID, GroupType_Name FROM Group_Type");
-    res.json(results);
-  } catch (err) {
-    console.error("❌ SQL ERROR /subject-groups:", err);
-    res.status(500).json({ ok: false, message: "Database Error", error: err.message });
-  }
-});
 
 // ✅ API วิชาจากกลุ่มที่เลือก
 app.get("/subjects/:groupId", async (req, res) => {
@@ -270,7 +251,7 @@ app.get("/time", async (req, res) => {
 // import mysql from 'mysql2/promise';
 // const pool = mysql.createPool({ ... });
 
-a// ✅ API บันทึกฟอร์ม GE
+
 app.post("/submit-form", async (req, res) => {
   try {
     console.log("📦 ฟอร์มที่รับมา:", req.body);
