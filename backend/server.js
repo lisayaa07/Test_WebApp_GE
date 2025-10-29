@@ -594,7 +594,7 @@ app.get('/grouped-subjects', async (req, res) => {
         s.subject_ID,
         s.subject_Name
       FROM Group_Type g
-      LEFT JOIN Subject s ON s.Group_Type_ID = g.GroupType_ID
+      LEFT JOIN Subject s ON s.group_Type_ID = g.GroupType_ID
       ORDER BY g.GroupType_ID, s.subject_Name
     `;
 
