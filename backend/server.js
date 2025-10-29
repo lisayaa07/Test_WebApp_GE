@@ -583,19 +583,18 @@ app.post('/cbr-match', async (req, res) => {
 });
 
 
-
 // ✅ รวมวิชาทั้งหมดไว้ในกลุ่ม (Group_Type → Subject)
 app.get('/grouped-subjects', async (req, res) => {
   try {
     const sql = `
       SELECT
-        g.groupType_ID,
-        g.groupType_Name,
-        s.subject_ID,
-        s.subject_Name
+        g.GroupType_ID,
+        g.GroupType_Name,
+        s.Subject_ID,
+        s.Subject_Name
       FROM Group_Type g
-      LEFT JOIN Subject s ON s.group_Type_ID = g.groupType_ID
-      ORDER BY g.groupType_ID, s.subject_Name
+      LEFT JOIN Subject s ON s.GroupType_ID = g.GroupType_ID
+      ORDER BY g.GroupType_ID, s.Subject_Name
     `;
 
     const [rows] = await db.query(sql);
@@ -603,20 +602,20 @@ app.get('/grouped-subjects', async (req, res) => {
     const grouped = [];
 
     rows.forEach(row => {
-      let group = grouped.find(g => g.group_ID === row.groupType_ID);
+      let group = grouped.find(g => g.group_ID === row.GroupType_ID);
       if (!group) {
         group = {
-          group_ID: row.groupType_ID,
-          group_Name: row.groupType_Name,
+          group_ID: row.GroupType_ID,
+          group_Name: row.GroupType_Name,
           subjects: []
         };
         grouped.push(group);
       }
 
-      if (row.subject_ID) {
+      if (row.Subject_ID) {
         group.subjects.push({
-          subject_ID: row.subject_ID,
-          subject_Name: row.subject_Name
+          subject_ID: row.Subject_ID,
+          subject_Name: row.Subject_Name
         });
       }
     });
@@ -627,7 +626,6 @@ app.get('/grouped-subjects', async (req, res) => {
     res.status(500).json({ ok: false, message: 'Database Error', error: err.message });
   }
 });
-
 
 // ✅ ดึงรีวิวทั้งหมดของวิชานั้น
 app.get('/subjects/:id/reviews', async (req, res) => {
