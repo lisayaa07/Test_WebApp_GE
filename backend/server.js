@@ -583,21 +583,47 @@ app.post('/cbr-match', async (req, res) => {
 });
 
 
-// ✅ API วิชาจากกลุ่มที่เลือก
-app.get("/subjects/:groupId", async (req, res) => {
-  const groupId = req.params.groupId;
-  try {
-    const [results] = await db.query(
-      "SELECT subject_ID, subject_Name FROM Subject WHERE group_type_ID = ?",
-      [groupId]
-    );
-    res.json(results);
-  } catch (err) {
-    console.error("❌ SQL ERROR /subjects:", err);
-    res.status(500).json({ ok: false, message: "Database Error", error: err.message });
-  }
-});
+// ✅ รวมวิชาทั้งหมดไว้ในกลุ่ม (Group_Type → Subject)
+app.get('/grouped-subjects', (req, res) => {
+  const sql = `
+    SELECT
+      g.GroupType_ID,
+      g.GroupType_Name,
+      s.subject_ID,
+      s.subject_Name
+    FROM Group_Type g
+    LEFT JOIN Subject s ON s.Group_Type_ID = g.GroupType_ID
+    ORDER BY g.GroupType_ID, s.subject_Name
+  `
 
+  connection.query(sql, (err, rows) => {
+    if (err) return res.status(500).send("Database Error")
+
+    const grouped = []
+
+    rows.forEach(row => {
+      let group = grouped.find(g => g.group_ID === row.GroupType_ID)
+
+      if (!group) {
+        group = {
+          group_ID: row.GroupType_ID,
+          group_Name: row.GroupType_Name,
+          subjects: []
+        }
+        grouped.push(group)
+      }
+
+      if (row.subject_ID) {
+        group.subjects.push({
+          subject_ID: row.subject_ID,
+          subject_Name: row.subject_Name
+        })
+      }
+    })
+
+    res.json(grouped)
+  })
+})
 
 // ✅ ดึงรีวิวทั้งหมดของวิชานั้น
 app.get('/subjects/:id/reviews', async (req, res) => {
