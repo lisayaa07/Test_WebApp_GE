@@ -6,10 +6,9 @@ const app = express();
 const db = require('./db');   // ✅ ใช้ db จาก mysql2/promise โดยตรง
 const corsOpts = {
   origin: [
-    'https://app.genuproject.site',         // ✅ domain จริง (เมื่อใช้ custom domain)
-    'https://test-web-app-ge.vercel.app',   // ✅ domain จาก Vercel (ตอนนี้ที่ใช้อยู่)
-    'https://test-webapp-ge.onrender.com'   // ✅ backend ตัวเอง
+    'https://test-web-app-ge.vercel.app'
   ],
+
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
