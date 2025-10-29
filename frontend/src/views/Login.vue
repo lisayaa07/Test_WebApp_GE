@@ -24,20 +24,24 @@ const onLogin = async (e) => {
     const res = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // ✅ เพิ่มบรรทัดนี้
+      credentials: 'include',
       body: JSON.stringify({
         email: email.value.trim(),
         password: password.value
       })
     })
 
-    const data = await res.json()
+    let data
+    try {
+      data = await res.json()
+    } catch {
+      throw new Error('เซิร์ฟเวอร์ไม่ตอบกลับข้อมูลที่ถูกต้อง')
+    }
 
     if (!res.ok || !data.ok) {
       throw new Error(data.message || 'เข้าสู่ระบบไม่สำเร็จ')
     }
 
-    // ✅ ไปหน้า home หลังล็อกอินสำเร็จ
     router.push({ name: 'home' })
   } catch (err) {
     console.error('Login error:', err)
@@ -46,6 +50,7 @@ const onLogin = async (e) => {
     loading.value = false
   }
 }
+
 </script>
 
 
