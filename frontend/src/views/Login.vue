@@ -1,7 +1,10 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/api'   // ✅ นำเข้า instance axios ที่มี baseURL = '/api'
+import api from '@/api'
+
+// ✅ เพิ่มบรรทัดนี้
+import pro from '/Photo/pro.png'
 
 const router = useRouter()
 
@@ -16,7 +19,7 @@ const onLogin = async (e) => {
   loading.value = true
 
   try {
-    const res = await api.post('/login', {   // ✅ ใช้ api แทน fetch
+    const res = await api.post('/login', {
       email: email.value.trim(),
       password: password.value
     })
@@ -24,7 +27,7 @@ const onLogin = async (e) => {
     console.log('✅ Login response:', res.data)
     if (!res.data.ok) throw new Error(res.data.message || 'เข้าสู่ระบบไม่สำเร็จ')
 
-    router.push({ name: 'home' }) // ✅ ไปหน้า Home หลัง login สำเร็จ
+    router.push({ name: 'home' })
   } catch (err) {
     console.error('❌ Login error:', err)
     errorMsg.value = err.message || 'เกิดข้อผิดพลาด'
