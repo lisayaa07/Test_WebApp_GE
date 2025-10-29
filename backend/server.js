@@ -583,48 +583,18 @@ app.post('/cbr-match', async (req, res) => {
 });
 
 
-// ✅ รวมวิชาทั้งหมดไว้ในกลุ่ม (Group_Type → Subject)
-app.get('/grouped-subjects', async (req, res) => {
+// ✅ API วิชาจากกลุ่มที่เลือก
+app.get("/subjects/:groupId", async (req, res) => {
+  const groupId = req.params.groupId;
   try {
-    const sql = `
-      SELECT
-        g.GroupType_ID,
-        g.GroupType_Name,
-        s.Subject_ID,
-        s.Subject_Name
-      FROM Group_Type g
-      LEFT JOIN Subject s ON s.GroupType_ID = g.GroupType_ID
-      ORDER BY g.GroupType_ID, s.Subject_Name
-    `;
-
-    const [rows] = await db.query(sql);
-
-    const grouped = [];
-
-    rows.forEach(row => {
-      // ✅ ใช้ชื่อคอลัมน์ตรงกับ DB
-      let group = grouped.find(g => g.group_ID === row.GroupType_ID);
-      if (!group) {
-        group = {
-          group_ID: row.GroupType_ID,
-          group_Name: row.GroupType_Name,
-          subjects: []
-        };
-        grouped.push(group);
-      }
-
-      if (row.Subject_ID) {
-        group.subjects.push({
-          subject_ID: row.Subject_ID,
-          subject_Name: row.Subject_Name
-        });
-      }
-    });
-
-    res.json({ ok: true, grouped });
+    const [results] = await db.query(
+      "SELECT subject_ID, subject_Name FROM Subject WHERE group_type_ID = ?",
+      [groupId]
+    );
+    res.json(results);
   } catch (err) {
-    console.error('❌ grouped-subjects error:', err);
-    res.status(500).json({ ok: false, message: 'Database Error', error: err.message });
+    console.error("❌ SQL ERROR /subjects:", err);
+    res.status(500).json({ ok: false, message: "Database Error", error: err.message });
   }
 });
 
