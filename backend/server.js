@@ -2,11 +2,8 @@ require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const pool = require('./db'); 
-const db = pool;              
 
-const connection = pool; 
-// วางไว้บนสุดก่อน routes ทั้งหมด
+const db = require('./db');   // ✅ ใช้ db จาก mysql2/promise โดยตรง
 const corsOpts = {
   origin: [
     'https://app.genuproject.site',         // ✅ domain จริง (เมื่อใช้ custom domain)
@@ -63,13 +60,14 @@ app.get('/me', (req, res) => {
 
 app.get('/db-health', async (_req, res) => {
   try {
-    const [r] = await pool.query('SELECT 1');
-    res.json({ ok: true, r });
+    const [rows] = await db.query('SELECT 1 AS result');
+    res.json({ ok: true, rows });
   } catch (e) {
     console.error('DB health fail:', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
+
 
 
 
