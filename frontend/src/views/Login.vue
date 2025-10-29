@@ -3,7 +3,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import pro from '/Photo/pro.png'
 
-const API_URL = 'https://test-webapp-ge.onrender.com'
+const API_URL = 'https://test-webapp-ge.onrender.com';
+
 
 
 const router = useRouter()
