@@ -621,7 +621,8 @@ app.get('/grouped-subjects', async (req, res) => {
       }
     });
 
-    res.json({ ok: true, grouped });
+   res.json(grouped);
+
   } catch (err) {
     console.error('❌ grouped-subjects error:', err);
     res.status(500).json({ ok: false, message: 'Database Error', error: err.message });
