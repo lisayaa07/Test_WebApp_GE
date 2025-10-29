@@ -7,12 +7,16 @@ const db = pool.promise();         // ใช้แบบ promise
 const connection = pool; 
 // วางไว้บนสุดก่อน routes ทั้งหมด
 const corsOpts = {
-  origin: ['https://test-web-app-ge.vercel.app'],
-  credentials: true,                          
+  origin: [
+    'https://test-web-app-ge.vercel.app',
+    'https://test-webapp-ge.onrender.com'
+  ],
+  credentials: true,
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
   optionsSuccessStatus: 204,
 };
+
 app.use(cors(corsOpts));
 
 app.use((req, res, next) => {
