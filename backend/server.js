@@ -5,17 +5,14 @@ const app = express();
 
 const db = require('./db');   // ✅ ใช้ db จาก mysql2/promise โดยตรง
 const corsOpts = {
-  origin: [
-    'https://test-web-app-ge.vercel.app'
-  ],
-
+  origin: ['https://test-web-app-ge.vercel.app'], // ✅ เหลืออันเดียว
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 204,
 };
-
 app.use(cors(corsOpts));
+
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Credentials", "true");
