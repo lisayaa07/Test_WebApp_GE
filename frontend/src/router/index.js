@@ -86,9 +86,8 @@ const router = createRouter({
 })
 
 
-const API_URL =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 
-  'https://test-webapp-ge.onrender.com'
+const API_URL = '/api';
+
 
 // 🔹 แคชสถานะสั้น ๆ เพื่อไม่ให้เรียก /me รัว ๆ ระหว่างนำทาง
 let __authCache = { at: 0, ok: false }
