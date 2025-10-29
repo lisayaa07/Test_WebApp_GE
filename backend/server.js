@@ -8,10 +8,11 @@ const connection = pool;
 // วางไว้บนสุดก่อน routes ทั้งหมด
 const corsOpts = {
   origin: [
-    'https://app.genuproject.site',    // ✅ frontend domain (production)
-
+    'https://app.genuproject.site',         // ✅ domain จริง (เมื่อใช้ custom domain)
+    'https://test-web-app-ge.vercel.app',   // ✅ domain จาก Vercel (ตอนนี้ที่ใช้อยู่)
+    'https://test-webapp-ge.onrender.com'   // ✅ backend ตัวเอง
   ],
-  credentials: true,                 
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 204,
@@ -396,14 +397,15 @@ app.post('/login', async (req, res) => {
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
 
     // --- ออกคุกกี้แบบ httpOnly ข้ามโดเมน (Vercel ↔ Render) ---
-  res.cookie('auth', token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    domain: '.genuproject.site',  // ✅ ทำให้ใช้ร่วมกันได้
-    path: '/',
-    maxAge: 2 * 60 * 60 * 1000
-  });
+    res.cookie('auth', token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        domain: '.genuproject.site',  // ✅ ใช้ได้ถ้ามี domain จริง
+        path: '/',
+        maxAge: 2 * 60 * 60 * 1000
+      });
+
 
 
     return res.json({ ok: true, user: payload });
