@@ -5,7 +5,8 @@ import { useResultsStore } from '@/stores/results'
 
 
 import Layout from '@/layout/Layout.vue'
-import api from '@/api/api'
+import api from '@/api'
+
 
 
 const router = useRouter()
