@@ -1,20 +1,14 @@
-// ในไฟล์ db.js
+// db.js
+const mysql = require('mysql2/promise'); // ✅ ใช้ promise version
+require('dotenv').config();
 
-const mysql = require('mysql2');
-const fs = require('fs');
-
-// ⚠️ ตัวแปร caCert นี้ไม่ได้ถูกใช้, สามารถลบออกหรือคอมเมนต์ไว้ได้
-// const caCert = process.env.CA_CERT_CONTENT; 
-
-
-let sslConfig = undefined; // เริ่มจากไม่ตั้ง SSL
+let sslConfig = undefined;
 
 if (process.env.DB_SSL === '1') {
   sslConfig = { rejectUnauthorized: true };
   if (process.env.VITE_API_URL) {
     sslConfig.ca = process.env.VITE_API_URL;
   } else if (process.env.ALLOW_INSECURE_SSL === '1') {
-    // โหมดผ่อนปรน (เฉพาะชั่วคราว)
     sslConfig = { rejectUnauthorized: false };
   }
 }

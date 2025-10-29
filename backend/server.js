@@ -2,8 +2,9 @@ require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const pool = require('./db');      // db.js export เป็น createPool() (ยังไม่ .promise())
-const db = pool.promise();         // ใช้แบบ promise
+const pool = require('./db'); 
+const db = pool;              
+
 const connection = pool; 
 // วางไว้บนสุดก่อน routes ทั้งหมด
 const corsOpts = {
