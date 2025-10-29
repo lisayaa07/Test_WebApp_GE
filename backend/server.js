@@ -589,10 +589,11 @@ app.get('/grouped-subjects', async (req, res) => {
   try {
     const sql = `
       SELECT
-        g.GroupType_ID,
-        g.GroupType_Name,
-        s.subject_ID,
-        s.subject_Name
+      g.GroupType_ID,
+      g.GroupType_Name,
+      s.Subject_ID,
+      s.Subject_Name
+
       FROM Group_Type g
       LEFT JOIN Subject s ON s.GroupType_ID = g.GroupType_ID
       ORDER BY g.GroupType_ID, s.subject_Name
