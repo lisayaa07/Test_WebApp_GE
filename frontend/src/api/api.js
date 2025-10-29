@@ -1,9 +1,8 @@
-// api.js
-import axios from 'axios'   // ✅ ต้องมีบรรทัดนี้
+import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/api',          // ✅ ใช้ proxy ของ Vercel
-  withCredentials: true,    // ✅ ให้แนบ cookie อัตโนมัติ
+  baseURL: '/api',           // ✅ ใช้ proxy แทน URL จริง
+  withCredentials: true,     // ✅ แนบ cookie
   timeout: 15000,
 })
 

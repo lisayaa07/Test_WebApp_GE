@@ -19,9 +19,9 @@ export default defineConfig(({ mode }) => ({
       '/api': {
         target: 'https://test-webapp-ge.onrender.com',
         changeOrigin: true,
-        secure: true,
-      },
-    },
+        secure: true
+      }
+    }
   },
   esbuild: mode === 'production' ? { drop: ['console', 'debugger'] } : undefined,
 }))
