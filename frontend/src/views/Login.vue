@@ -1,11 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import pro from '/Photo/pro.png'
-
-const API_URL = 'https://test-webapp-ge.onrender.com';
-
-
+import api from '@/api'   // ✅ นำเข้า instance axios ที่มี baseURL = '/api'
 
 const router = useRouter()
 
@@ -14,45 +10,28 @@ const password = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
 
-function isNuEmail(v) {
-  return typeof v === 'string' && v.toLowerCase().endsWith('@nu.ac.th')
-}
-
 const onLogin = async (e) => {
   e.preventDefault()
   errorMsg.value = ''
   loading.value = true
+
   try {
-    const res = await fetch(`${API_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        email: email.value.trim(),
-        password: password.value
-      })
+    const res = await api.post('/login', {   // ✅ ใช้ api แทน fetch
+      email: email.value.trim(),
+      password: password.value
     })
 
-    let data
-    try {
-      data = await res.json()
-    } catch {
-      throw new Error('เซิร์ฟเวอร์ไม่ตอบกลับข้อมูลที่ถูกต้อง')
-    }
+    console.log('✅ Login response:', res.data)
+    if (!res.data.ok) throw new Error(res.data.message || 'เข้าสู่ระบบไม่สำเร็จ')
 
-    if (!res.ok || !data.ok) {
-      throw new Error(data.message || 'เข้าสู่ระบบไม่สำเร็จ')
-    }
-
-    router.push({ name: 'home' })
+    router.push({ name: 'home' }) // ✅ ไปหน้า Home หลัง login สำเร็จ
   } catch (err) {
-    console.error('Login error:', err)
+    console.error('❌ Login error:', err)
     errorMsg.value = err.message || 'เกิดข้อผิดพลาด'
   } finally {
     loading.value = false
   }
 }
-
 </script>
 
 
