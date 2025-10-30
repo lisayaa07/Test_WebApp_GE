@@ -5,13 +5,17 @@ const app = express();
 
 const db = require('./db');  
 app.set('trust proxy', 1);
+import cors from 'cors'
+
 const corsOpts = {
-  origin: ['https://test-web-app-ge.vercel.app'], // ✅ frontend domain
-  credentials: true, // ✅ ต้องเปิด
+  origin: ['https://test-web-app-ge.vercel.app'], // ✅ domain ของ frontend
+  credentials: true, // ✅ อนุญาตให้ส่ง cookie
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 204,
 }
+
+app.use(cors(corsOpts))
+
 app.use(cors(corsOpts))
 app.options(/.*/, cors(corsOpts)) 
 
@@ -135,11 +139,11 @@ app.post('/login', async (req, res) => {
 
    res.cookie('auth', token, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',  // ✅ ต้องมี
-      path: '/',          // ✅ ต้องมี
+      secure: true, // ✅ สำคัญ! ต้องเป็น true เมื่อใช้ HTTPS
+      sameSite: 'None', // ✅ เพื่อให้ cookie ถูกส่งข้าม domain ได้
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 วัน
     })
+
 
 
 
