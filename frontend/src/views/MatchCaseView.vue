@@ -146,96 +146,94 @@ onMounted(async () => {
   }
 })
 /* ---------- submit ---------- */
+// ✅ ฟังก์ชันเมื่อกด "วิเคราะห์"
 async function onSubmit() {
-    errorMsg.value = ''
+  errorMsg.value = ''
+  loading.value = true
+  results.value = []
 
-    const missingFields = []
-    if (selectedInterestd.value.length === 0) missingFields.push('ความสนใจ')
-    if (selectedGroupTypes.value.length === 0) missingFields.push('หมวดวิชา')
-    if (!selectedGroupwork.value) missingFields.push('งานกลุ่ม')
-    if (!selectedsolowork.value) missingFields.push('งานเดี่ยว')
-    if (!selectedexam.value) missingFields.push('การสอบ')
-    if (!selectedattendance.value) missingFields.push('การเช็คชื่อ')
-    if (selectedinstruction.value.length === 0) missingFields.push('รูปแบบการสอน')
-    if (!selectedpresent.value) missingFields.push('การนำเสนอ')
-    if (!selectedexperience.value) missingFields.push('ประสบการณ์ใหม่ๆ')
-    if (!selectedchallenge.value) missingFields.push('ความยากง่าย')
-    if (!selectedtime.value) missingFields.push('ช่วงเวลา')
-    if (missingFields.length > 0) {
-        errorMsg.value = `กรุณาตอบคำถามให้ครบ: ${missingFields.join(', ')}`
-        return
+  // ตรวจว่าตอบครบทุกข้อหรือยัง
+  const missingFields = []
+  if (selectedInterestd.value.length === 0) missingFields.push('ความสนใจ')
+  if (selectedGroupTypes.value.length === 0) missingFields.push('หมวดวิชา')
+  if (!selectedGroupwork.value) missingFields.push('งานกลุ่ม')
+  if (!selectedsolowork.value) missingFields.push('งานเดี่ยว')
+  if (!selectedexam.value) missingFields.push('การสอบ')
+  if (!selectedattendance.value) missingFields.push('การเช็คชื่อ')
+  if (selectedinstruction.value.length === 0) missingFields.push('รูปแบบการสอน')
+  if (!selectedpresent.value) missingFields.push('การนำเสนอ')
+  if (!selectedexperience.value) missingFields.push('ประสบการณ์ใหม่ๆ')
+  if (!selectedchallenge.value) missingFields.push('ความยากง่าย')
+  if (!selectedtime.value) missingFields.push('ช่วงเวลา')
+
+  if (missingFields.length > 0) {
+    errorMsg.value = `กรุณาตอบคำถามให้ครบ: ${missingFields.join(', ')}`
+    loading.value = false
+    return
+  }
+
+  // เตรียมข้อมูลส่ง backend
+  const toD = (v) => /^\d+$/.test(String(v)) ? `D${v}` : String(v)
+  const instructionTokens = Array.isArray(selectedinstruction.value)
+    ? selectedinstruction.value.map(toD)
+    : []
+
+  const payload = {
+    interestd: selectedInterestd.value,
+    groupwork: selectedGroupwork.value,
+    solowork: selectedsolowork.value,
+    exam: selectedexam.value,
+    attendance: selectedattendance.value,
+    instructions: instructionTokens,
+    instruction: instructionTokens[0] || '',
+    instruction_CSV: instructionTokens.join(','),
+    present: selectedpresent.value,
+    experience: selectedexperience.value,
+    challenge: selectedchallenge.value,
+    time: selectedtime.value,
+    group_types: selectedGroupTypes.value,
+    debug: true,
+  }
+
+  try {
+    console.log('🚀 ส่ง payload ไป /cbr-match:', payload)
+    const { data } = await api.post('/cbr-match', payload, { withCredentials: true })
+
+    console.log('📦 ผลลัพธ์ที่ได้จาก backend:', data)
+
+    if (!data.ok) {
+      throw new Error(data.message || 'ไม่พบข้อมูลที่ตรง')
     }
 
-    loading.value = true
-    results.value = []
+    resultGroups.value = Array.isArray(data.groups) ? data.groups : []
+    const raw = (Array.isArray(data.top) && data.top.length ? data.top : data.all) || []
 
-    const toD = (v) => /^\d+$/.test(String(v)) ? `D${v}` : String(v)
-    const instructionTokens = Array.isArray(selectedinstruction.value)
-        ? selectedinstruction.value.map(toD)
-        : []
+    results.value = raw.map(r => ({
+      ...r,
+      similarity: Number(r.similarity ?? 0),
+    }))
 
-    try {
-        const payload = {
-            interestd: selectedInterestd.value,
-            groupwork: selectedGroupwork.value,
-            solowork: selectedsolowork.value,
-            exam: selectedexam.value,   // จะได้ "C0" .. "C7"
-            attendance: selectedattendance.value,
+    // ✅ บันทึกผลใน Pinia store
+    resultsStore.setResults({
+      resultGroups: resultGroups.value,
+      results: results.value,
+      payload,
+    })
 
-            instructions: instructionTokens,
-            instruction: instructionTokens[0] || '',
-            instruction_CSV: instructionTokens.join(','),
-            present: selectedpresent.value,
-            experience: selectedexperience.value,
-            challenge: selectedchallenge.value,
-            time: selectedtime.value,
-            group_types: selectedGroupTypes.value,  // ✅ ส่งหลายกลุ่ม
-            debug: true,
-            // weights: { ... }  // (ถ้ามี)
-        }
-        console.log('PLYLOAD /cbr-match:', payload)
-        const { data } = await api.post('/cbr-match', payload)
-
-        // ✅ รับ groups จาก backend
-        resultGroups.value = Array.isArray(data.groups) ? data.groups : []
-
-        // ใช้ top ถ้ามี ไม่งั้นใช้ all
-        const raw = (Array.isArray(data.top) && data.top.length ? data.top : data.all) || []
-
-        // ✅ บังคับให้มี field similarity เสมอ (รองรับหลายชื่อ)
-        results.value = raw.map(r => {
-            const s = r.similarity ?? r.similarityPct ?? r.score ?? r.percent ?? r.pct ?? null
-            const n = Number(s)
-            return { ...r, similarity: Number.isFinite(n) ? n : 0 }
-        })
-
-        // debug
-        console.log('CBR response:', data)
-        console.log('Mapped results:', results.value)
-
-        // ✅ ส่งผลลัพธ์ไปเก็บใน Pinia store และไปหน้า /results 
-        resultsStore.setResults({
-            resultGroups: resultGroups.value,
-            results: results.value,
-            payload, // เก็บไว้เผื่อ debug/ย้อนกลับ 
-        })
-
-        if (DEBUG_LOG) {
-            for (const g of resultGroups.value || []) {
-                for (const c of g.items || []) {
-                    logDebugItem(c)
-                }
-            }
-        }
-
-        router.push({ name: 'showresults' }) // ไปหน้าแสดงผล
-
-
-    } catch (e) {
-        errorMsg.value = e?.response?.data?.message || e.message || 'เกิดข้อผิดพลาด'
-    } finally {
-        loading.value = false
+    // ✅ ไปหน้าแสดงผล (ชื่อ route ต้องตรงกับ router ของคุณ)
+    console.log('✅ วิเคราะห์สำเร็จ กำลังไปหน้า showresults...')
+    await router.push({ name: 'showresults' })
+  } catch (err) {
+    console.error('❌ /cbr-match error:', err.response?.data || err)
+    if (err.response?.status === 401) {
+      errorMsg.value = 'กรุณาเข้าสู่ระบบใหม่ (Session หมดอายุ)'
+      router.push({ name: 'login' })
+    } else {
+      errorMsg.value = err?.response?.data?.message || err.message || 'เกิดข้อผิดพลาด'
     }
+  } finally {
+    loading.value = false
+  }
 }
 
 </script>
