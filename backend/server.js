@@ -1,61 +1,66 @@
 require('dotenv').config();
-const express = require("express");
-const cors = require("cors");
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+const db = require('./db'); // ถ้ามีใช้งาน DB
 const app = express();
 
-const db = require('./db');  
 app.set('trust proxy', 1);
-const corsOpts = {
-  origin: ['https://test-web-app-ge-lac.vercel.app/'], // ✅ เหลืออันเดียว
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 204,
-};
-app.use(cors(corsOpts));
 
+// ✅ อนุญาตเฉพาะ domain ที่ต้องการเท่านั้น
+const allowedOrigins = [
+  'https://test-web-app-ge-lac.vercel.app', // frontend จริงบน Vercel
+  'http://localhost:5173'                   // สำหรับ test local
+];
 
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Credentials", "true");
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // ✅ ถ้าเป็น preflight request (OPTIONS) ให้ตอบกลับทันที
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
   next();
 });
 
-const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-
 app.use(cookieParser());
-
-app.set('trust proxy', 1);
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
+// ✅ ตรวจ token จาก cookie
 function authRequired(req, res, next) {
   try {
     const token = req.cookies?.auth;
-    if (!token) return res.status(401).json({ ok: false, message: 'Unauthorized' });
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = user;
+    if (!token) {
+      return res.status(401).json({ ok: false, message: 'Unauthorized - No token' });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
     next();
-  } catch (e) {
-    return res.status(401).json({ ok: false, message: 'Unauthorized' });
+  } catch (err) {
+    console.error('JWT verify failed:', err.message);
+    return res.status(401).json({ ok: false, message: 'Unauthorized - Invalid token' });
   }
 }
-app.get('/me', (req, res) => {
+
+// ✅ route ทดสอบ cookie / token
+app.get('/me', authRequired, async (req, res) => {
   try {
-    const token = req.cookies?.auth;
-    if (!token) return res.json({ ok: false });
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    return res.json({ ok: true, user });
-  } catch {
-    return res.json({ ok: false });
+    res.json({ ok: true, user: req.user });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: 'Server error', error: err.message });
   }
 });
 
-
-
-app.get('/db-health', async (_req, res) => {
+// ✅ health check
+app.get('/db-health', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT 1 AS result');
     res.json({ ok: true, rows });
@@ -64,6 +69,7 @@ app.get('/db-health', async (_req, res) => {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
+
 
 // ✅ API ล็อกอิน
 const bcrypt = require('bcryptjs');
