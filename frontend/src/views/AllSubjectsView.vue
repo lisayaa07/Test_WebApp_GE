@@ -6,7 +6,7 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { faHeart as farHeart } from '@fortawesome/free-regular-svg-icons'
 import { faHeart as fasHeart } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-
+import api from '@/api/api' 
 library.add(farHeart, fasHeart)
 
 // Base API URL (ตั้งใน .env: VITE_API_URL)
@@ -112,28 +112,9 @@ async function toggleFavorite (subjectId) {
   }
 }
 
-// โหลด grouped subjects (All Subjects)
-async function loadGroupedSubjects () {
-  try {
-    const res = await fetch(`${API_URL}/grouped-subjects`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    })
-    if (!res.ok) {
-      let msg = res.statusText
-      try { const j = await res.json(); msg = j?.message || msg } catch(e){}
-      throw new Error(msg)
-    }
-    const data = await res.json()
-    groupedSubjects.value = data
-  } catch (err) {
-    console.error('❌ โหลด grouped subjects ล้มเหลว', err)
-    // ถ้าต้องการแสดงข้อความ error ให้เพิ่ม state และแสดงใน template
-  }
-}
 
 // โหลดข้อมูลเมื่อ component mount
-oonMounted(async () => {
+onMounted(async () => {
   try {
     const res = await api.get('/grouped-subjects')
     groupedSubjects.value = res.data
