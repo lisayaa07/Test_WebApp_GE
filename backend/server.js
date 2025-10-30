@@ -6,13 +6,15 @@ const app = express();
 const db = require('./db');  
 app.set('trust proxy', 1);
 const corsOpts = {
-  origin: ['https://test-web-app-ge.vercel.app'], // ✅ เหลืออันเดียว
-  credentials: true,
+  origin: ['https://test-web-app-ge.vercel.app'], // ✅ frontend domain
+  credentials: true, // ✅ ต้องเปิด
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 204,
-};
-app.use(cors(corsOpts));
+}
+app.use(cors(corsOpts))
+
+
 
 
 app.use((req, res, next) => {
@@ -470,7 +472,7 @@ app.post('/register', async (req, res) => {
 
 
 
-/* ---------- Case-based Reasoning ---------- */
+
 app.post('/cbr-match', async (req, res) => {
   const {
     interestd = [],

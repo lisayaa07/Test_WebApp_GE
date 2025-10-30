@@ -3,6 +3,8 @@ import { ref, onMounted, computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import profile from '/Photo/profilee.jpg'
 import axios from 'axios'
+import api from '@/api/api.js'
+
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://test-webapp-ge.onrender.com'
 const router = useRouter()
@@ -60,11 +62,8 @@ function openProfile() {
 // -------------------- โหลดข้อมูลผู้ใช้หลัง Login --------------------
 async function fetchUserProfile() {
   try {
-    const res = await fetch(`${API_URL}/me`, {
-      method: 'GET',
-      credentials: 'include', // สำคัญมาก ส่งคุกกี้ไปด้วย
-    })
-    const data = await res.json()
+    const res = await api.get('/me') // ✅ ใช้ instance ที่ตั้งค่า withCredentials:true แล้ว
+    const data = res.data
     if (data.ok && data.user) {
       user.value = {
         email: data.user.email,
@@ -75,7 +74,6 @@ async function fetchUserProfile() {
         faculty_Name: data.user.faculty_Name,
       }
     } else {
-      // ถ้าไม่มี session -> กลับไปหน้า login
       router.replace({ name: 'login' })
     }
   } catch (e) {
@@ -87,18 +85,16 @@ async function fetchUserProfile() {
 // -------------------- โหลดข้อมูลคณะ --------------------
 async function loadFaculties() {
   try {
-    const res = await fetch(`${API_URL}/faculty`, {
-      method: 'GET',
-      credentials: 'include',
-    })
-    const j = await res.json().catch(() => null)
-    if (!res.ok) throw new Error(j?.message || res.statusText || 'โหลดคณะไม่สำเร็จ')
-    faculties.value = Array.isArray(j) ? j : (j?.items ?? [])
+    const res = await api.get('/faculty')
+    faculties.value = Array.isArray(res.data)
+      ? res.data
+      : res.data.items ?? []
   } catch (e) {
     console.error('โหลดคณะไม่สำเร็จ:', e)
     faculties.value = []
   }
 }
+
 
 // -------------------- เริ่มโหลดตอนเปิด Layout --------------------
 onMounted(async () => {
@@ -123,15 +119,13 @@ const facultyName = computed(() => {
 // -------------------- Logout --------------------
 async function logout() {
   try {
-    await fetch(`${API_URL}/logout`, {
-      method: 'POST',
-      credentials: 'include',
-    })
+    await api.post('/logout')
   } catch (e) {
     console.warn('logout request failed:', e)
   }
   router.replace({ name: 'login' })
 }
+
 </script>
 
 <template>
