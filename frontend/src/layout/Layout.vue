@@ -2,7 +2,6 @@
 import { ref, onMounted, computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import profile from '/Photo/profilee.jpg'
-
 import api from '@/api/api.js'
 
 
