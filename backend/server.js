@@ -6,7 +6,7 @@ const app = express();
 const db = require('./db');  
 app.set('trust proxy', 1);
 const corsOpts = {
-  origin: ['https://test-web-app-ge.vercel.app'], // ✅ เหลืออันเดียว
+  origin: ['https://test-web-app-ge-lac.vercel.app/'], // ✅ เหลืออันเดียว
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
