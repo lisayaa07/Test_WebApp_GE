@@ -70,21 +70,15 @@ onMounted(fetchReviews)
       </div>
 
       <!-- มีรีวิว -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      <div v-else class="ml-5 mt-5">
         <div
           v-for="(r, i) in reviews"
           :key="r.id || i"
-          class="bg-white rounded-3xl shadow-lg p-6 hover:shadow-xl transition transform hover:scale-[1.01]"
+          class="bg-white rounded-3xl shadow-md p-6 mb-4 hover:bg-blue-50 transition"
         >
-          <div class="text-lg text-gray-800 leading-relaxed">
+          <p class="text-lg text-gray-800 leading-relaxed">
             “{{ r.text || '-' }}”
-          </div>
-
-          <div class="mt-4 flex flex-wrap gap-3 text-sm text-gray-600">
-            <span class="badge badge-outline">เกรดที่ได้: {{ r.grade || '-' }}</span>
-            <span class="badge badge-outline">คณะ: {{ r.faculty || '-' }}</span>
-            <span class="badge badge-outline">ชั้นปี: {{ r.level || '-' }}</span>
-          </div>
+          </p>
         </div>
       </div>
     </div>
