@@ -88,12 +88,28 @@ onMounted(async () => {
   try {
     loading.value = true
     errorMsg.value = ''
+
+    // ✅ 1. โหลดข้อมูลผู้ใช้จาก cookie auth
+    const meRes = await api.get('/me', { withCredentials: true })
+    if (meRes.data?.ok && meRes.data.user) {
+      const u = meRes.data.user
+      studentId.value = u.student_ID || ''
+      selectedStudentLevel.value = u.student_level || ''
+      selectedFaculty.value = u.faculty_ID || ''
+      console.log('✅ โหลดข้อมูลผู้ใช้สำเร็จ:', u)
+    } else {
+      console.warn('⚠️ ไม่พบข้อมูลผู้ใช้ /me')
+    }
+
+    // ✅ 2. โหลดข้อมูล dropdown อื่น ๆ จาก backend
     const endpoints = [
       'faculty','interestd','subject-groups','grades',
       'groupwork','solowork','exam','attendance',
       'instruction','present','experience','challenge','time'
     ]
-    const fetches = endpoints.map(p => fetch(`${API_URL}/${p}`, { credentials: 'include' }))
+    const fetches = endpoints.map(p =>
+      fetch(`${API_URL}/${p}`, { credentials: 'include' })
+    )
     const responses = await Promise.all(fetches)
 
     const parseSafe = async (r) => {
@@ -116,10 +132,6 @@ onMounted(async () => {
     challenge.value = await parseSafe(responses[11])
     time.value = await parseSafe(responses[12])
 
-    // preload ค่า default จาก localStorage
-    studentId.value = localStorage.getItem('student_ID') || ''
-    selectedStudentLevel.value = localStorage.getItem('studentLevel') || ''
-    selectedFaculty.value = localStorage.getItem('facultyId') || ''
   } catch (err) {
     console.error('โหลดข้อมูลไม่สำเร็จ:', err)
     errorMsg.value = err?.message || 'โหลดข้อมูลเริ่มต้นล้มเหลว'
@@ -127,6 +139,7 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
 
 // -------------------------
 // 5) resetForm: ล้างข้อมูลทุกช่อง
@@ -221,35 +234,44 @@ async function onSubmit() {
     <Layout>
         <form class="p-6 space-y-6" @submit="onSubmit">
 
-            <div class="flex gap-10">
-                <fieldset class="fieldset">
-                    <legend class="fieldset-legend text-lg">รหัสนิสิต</legend>
-                    <input type="text" v-model="studentId" class="input input-neutral" placeholder="กรอกรหัสนิสิต" />
-                </fieldset>
+            <!-- ส่วนข้อมูลผู้ใช้ -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- รหัสนิสิต -->
+                <div>
+                    <label class="block font-semibold mb-1">รหัสนิสิต</label>
+                    <input
+                    type="text"
+                    v-model="studentId"
+                    readonly
+                    class="input input-bordered w-full"
+                    placeholder="กรอกรหัสนิสิต"
+                    />
+                </div>
 
                 <!-- ชั้นปี -->
-                <fieldset class="fieldset">
-                    <legend class="fieldset-legend text-lg">ชั้นปี</legend>
-                    <select class="select select-neutral" v-model="selectedStudentLevel">
-                        <option disabled value="">เลือกชั้นปี</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
+                <div>
+                    <label class="block font-semibold mb-1">ชั้นปี</label>
+                    <select v-model="selectedStudentLevel" class="select select-bordered w-full" disabled>
+                    <option value="">เลือกชั้นปี</option>
+                    <option value="1">ปี 1</option>
+                    <option value="2">ปี 2</option>
+                    <option value="3">ปี 3</option>
+                    <option value="4">ปี 4</option>
                     </select>
-                </fieldset>
+                </div>
 
                 <!-- คณะ -->
-                <fieldset class="fieldset">
-                    <legend class="fieldset-legend text-lg">คณะ</legend>
-                    <select class="select select-neutral" v-model="selectedFaculty">
-                        <option disabled value="">เลือกคณะ</option>
-                        <option v-for="f in faculties" :key="f.faculty_ID" :value="f.faculty_ID">
-                            {{ f.faculty_Name }}
-                        </option>
+                <div>
+                    <label class="block font-semibold mb-1">คณะ</label>
+                    <select v-model="selectedFaculty" class="select select-bordered w-full" disabled>
+                    <option value="">เลือกคณะ</option>
+                    <option v-for="f in faculties" :key="f.faculty_ID" :value="f.faculty_ID">
+                        {{ f.faculty_Name }}
+                    </option>
                     </select>
-                </fieldset>
-            </div>
+                </div>
+                </div>
+
 
 
             <!-- ความสนใจ -->
