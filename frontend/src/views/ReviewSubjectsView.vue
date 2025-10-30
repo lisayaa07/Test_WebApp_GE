@@ -87,11 +87,7 @@ onMounted(fetchReviews)
           <p class="text-lg font-medium text-gray-800">
             {{ r.text || '-' }}
           </p>
-          <div class="mt-2 flex flex-wrap gap-3 text-sm text-gray-600">
-            <span class="badge badge-ghost">เกรด: {{ r.grade || '-' }}</span>
-            <span class="badge badge-outline">คณะ: {{ r.faculty || '-' }}</span>
-            <span class="badge badge-outline">ชั้นปี: {{ r.level || '-' }}</span>
-          </div>
+        
         </div>
       </div>
     </div>
