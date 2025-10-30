@@ -29,11 +29,6 @@ app.use((req, res, next) => {
 });
 
 
-const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-
-app.use(cookieParser());
-
 app.set('trust proxy', 1);
 
 app.use(express.json());
