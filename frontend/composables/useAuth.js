@@ -1,21 +1,20 @@
-
 import { ref } from 'vue'
-import api from '@/api/api.js'
 
 export const user = ref(null)
+export const isLoggedIn = ref(false)
 
 export async function fetchUser() {
   try {
-    const res = await api.get('/me')
-    if (res.data.ok && res.data.user) {
-      user.value = res.data.user
-      return true
+    const res = await fetch('/me', { credentials: 'include' })
+    const data = await res.json()
+    if (data.ok && data.user) {
+      user.value = data.user
+      isLoggedIn.value = true
+    } else {
+      isLoggedIn.value = false
     }
   } catch (err) {
-    console.error('fetchUser failed:', err)
+    console.error('fetchUser error:', err)
+    isLoggedIn.value = false
   }
-  user.value = null
-  return false
 }
-
-export const isLoggedIn = () => !!user.value?.student_ID
