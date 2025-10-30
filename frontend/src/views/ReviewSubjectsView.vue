@@ -1,14 +1,21 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import Layout from '@/layout/Layout.vue'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import api from '@/api/api.js'
+
+// FontAwesome (เฉพาะ comment)
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { faCommentDots } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+library.add(faCommentDots)
 
 const route = useRoute()
 const router = useRouter()
 
 const subjectId = ref(route.params.id)
 const subjectName = ref(route.query.name || 'ไม่ระบุชื่อวิชา')
+
 const reviews = ref([])
 const loading = ref(true)
 const errorMsg = ref('')
@@ -25,61 +32,55 @@ async function fetchReviews() {
   }
 }
 
-function goBack() {
-  router.back()
-}
-
 onMounted(fetchReviews)
 </script>
 
 <template>
   <Layout>
-    <div class="bg-[#6495ED]/35 p-6 rounded-3xl mt-10 mx-3 shadow">
-      <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-[#192F4E]">
-          รีวิวจากรุ่นพี่
-        </h1>
-        <button
-          @click="goBack"
-          class="btn bg-pink-300 hover:bg-pink-500 text-white rounded-full px-6 py-2"
-        >
-          🔙 ย้อนกลับ
-        </button>
-      </div>
+    <div class="bg-[#6495ED]/35 shadow p-6 rounded-3xl mt-10 mx-3">
+      <h1 class="text-3xl font-bold text-black/70 mb-4">
+        รีวิวจากรุ่นพี่
+      </h1>
 
-      <div class="text-2xl font-semibold mb-4 text-gray-700">
+      <h2 class="text-2xl font-semibold mb-6 text-[#192F4E]">
         วิชา {{ subjectName }}
-      </div>
+      </h2>
 
-      <!-- กำลังโหลด -->
-      <div v-if="loading" class="text-center text-lg text-gray-500 py-8">
+      <div v-if="loading" class="text-center text-gray-500 text-lg py-8">
         กำลังโหลดข้อมูล...
       </div>
 
-      <!-- แสดง error -->
       <div v-else-if="errorMsg" class="alert alert-error text-center">
         {{ errorMsg }}
       </div>
 
-      <!-- ไม่มีรีวิว -->
-      <div
-        v-else-if="reviews.length === 0"
-        class="text-center text-gray-600 bg-white rounded-2xl p-8"
-      >
-        ยังไม่มีรีวิวสำหรับรายวิชานี้
+      <div v-else-if="!reviews.length" class="text-center opacity-60 py-6">
+        ยังไม่มีรีวิวจากรุ่นพี่สำหรับรายวิชานี้
       </div>
 
-      <!-- มีรีวิว -->
       <div v-else class="ml-5 mt-5">
         <div
           v-for="(r, i) in reviews"
           :key="r.id || i"
-          class="bg-white rounded-3xl shadow-md p-6 mb-4 hover:bg-blue-50 transition"
+          class="flex justify-between items-start bg-white/70 hover:bg-white/90 rounded-2xl p-5 mb-4 shadow"
         >
-          <p class="text-lg text-gray-800 leading-relaxed">
+          <div class="flex-1 text-xl text-gray-800 leading-relaxed">
             “{{ r.text || '-' }}”
-          </p>
+          </div>
+
+          <div class="flex gap-3 items-center pl-4">
+            <FontAwesomeIcon icon="comment-dots" size="lg" class="text-[#192F4E]" />
+          </div>
         </div>
+      </div>
+
+      <div class="text-center mt-8">
+        <RouterLink
+          to="/showresults"
+          class="btn bg-pink-300 hover:bg-pink-500 text-white"
+        >
+           ย้อนกลับ
+        </RouterLink>
       </div>
     </div>
   </Layout>
