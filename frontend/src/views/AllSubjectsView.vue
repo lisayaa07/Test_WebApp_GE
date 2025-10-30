@@ -9,57 +9,42 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 library.add(farHeart, fasHeart)
 
+// Base API URL (ตั้งใน .env: VITE_API_URL)
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
 const router = useRouter()
 const groupedSubjects = ref([])
 
-// --- State ใหม่สำหรับ User Info/Auth ---
-const user = ref(null) 
-const isLoggedIn = computed(() => !!user.value?.student_ID) 
-const busy = ref(false) // เพิ่ม busy state เพื่อกันดับเบิลคลิก
+// อ่านค่าจาก localStorage แบบที่โปรเจ็กต์คุณใช้อยู่แล้ว
+const studentId = ref(localStorage.getItem('student_ID') || '')
+const token = ref(localStorage.getItem('token') || '')
+const isLoggedIn = computed(() => localStorage.getItem('auth') === '1' && !!studentId.value)
 
 // รายการโปรด (subject_ID เป็นชุด)
 const favoriteIds = ref(new Set())
 const isFav = (subjectId) => favoriteIds.value.has(String(subjectId).trim())
 
-// --- ฟังก์ชัน handle 401 ---
-async function handle401(res) {
-  if (res.status === 401) {
-    router.replace({ name: 'login' })
-    throw new Error('Unauthorized')
-  }
-}
-
-// --- โหลดข้อมูลผู้ใช้ (จาก FavoritesView.vue) ---
-async function fetchMe() {
-  try {
-    const res = await fetch(`${API_URL}/me`, {
-      method: 'GET',
-      credentials: 'include', // ต้องใช้ credentials เพื่อส่ง cookie
-    })
-    const data = await res.json()
-    if (data?.ok && data.user) {
-      user.value = data.user
-    } else {
-      user.value = null
-    }
-  } catch (err) {
-    console.error('fetchMe error:', err)
-    user.value = null
-  }
+// --- ฟังก์ชันช่วยสร้าง headers (ใส่ token ถ้ามี) ---
+function authHeaders() {
+  const h = { 'Content-Type': 'application/json' }
+  const t = localStorage.getItem('token') || token.value
+  if (t) h.Authorization = `Bearer ${t}`
+  return h
 }
 
 // โหลด favorites (ids) ของผู้ใช้
 async function fetchFavorites () {
-  if (!isLoggedIn.value) return 
+  if (!isLoggedIn.value) return
   try {
-    const url = `${API_URL}/favorites/ids`
+    const url = `${API_URL}/favorites/ids?student_id=${encodeURIComponent(studentId.value)}`
     const res = await fetch(url, {
       method: 'GET',
-      credentials: 'include', // ✅ สำคัญ: ต้องส่ง Cookie
+      credentials: 'include',
+      headers: authHeaders()
+      
     })
-    await handle401(res) 
     if (!res.ok) {
+      // อ่าน message จาก backend ถ้ามี
       let errText = res.statusText
       try {
         const j = await res.json()
@@ -72,17 +57,16 @@ async function fetchFavorites () {
     favoriteIds.value = new Set((data || []).map(String))
   } catch (err) {
     console.error('❌ โหลด favorites ล้มเหลว', err)
+    // ไม่ต้องโยน error ไป UI ตรงนี้ (แต่คุณอาจจะแสดง toast ได้)
   }
 }
 
-// toggle favorite
+// toggle favorite (optimistic update)
 async function toggleFavorite (subjectId) {
   if (!isLoggedIn.value) {
     alert('กรุณาเข้าสู่ระบบก่อนจึงจะใช้งานรายการโปรดได้')
     return
   }
-  if (busy.value) return // กันดับเบิลคลิก
-  
   const sid = String(subjectId).trim()
   const wasFav = favoriteIds.value.has(sid)
 
@@ -90,33 +74,33 @@ async function toggleFavorite (subjectId) {
   const next = new Set(favoriteIds.value)
   wasFav ? next.delete(sid) : next.add(sid)
   favoriteIds.value = next
-  busy.value = true
 
   try {
-    let res
     if (wasFav) {
-      // DELETE
-      const url = `${API_URL}/favorites?subject_id=${encodeURIComponent(sid)}`
-      res = await fetch(url, {
+      // DELETE with query params
+      const url = `${API_URL}/favorites?student_id=${encodeURIComponent(studentId.value)}&subject_id=${encodeURIComponent(sid)}`
+      const res = await fetch(url, {
         method: 'DELETE',
-        credentials: 'include', // ✅ สำคัญ
+        headers: authHeaders()
       })
+      if (!res.ok) {
+        let j = {}
+        try { j = await res.json() } catch(e){}
+        throw new Error(j?.message || res.statusText)
+      }
     } else {
       // POST to add favorite
       const url = `${API_URL}/favorites`
-      res = await fetch(url, {
+      const res = await fetch(url, {
         method: 'POST',
-        credentials: 'include', // ✅ สำคัญ
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject_id: sid }) // Backend อ่าน student_id จาก Cookie
+        headers: authHeaders(),
+        body: JSON.stringify({ student_id: studentId.value, subject_id: sid })
       })
-    }
-    
-    await handle401(res)
-    if (!res.ok) {
-      let j = {}
-      try { j = await res.json() } catch(e){}
-      throw new Error(j?.message || res.statusText)
+      if (!res.ok) {
+        let j = {}
+        try { j = await res.json() } catch(e){}
+        throw new Error(j?.message || res.statusText)
+      }
     }
   } catch (err) {
     console.error('❌ toggle favorite error', err)
@@ -125,8 +109,6 @@ async function toggleFavorite (subjectId) {
     wasFav ? rollback.add(sid) : rollback.delete(sid)
     favoriteIds.value = rollback
     alert('ไม่สามารถอัปเดตรายการโปรดได้ กรุณาลองใหม่')
-  } finally {
-    busy.value = false
   }
 }
 
@@ -143,13 +125,18 @@ async function loadGroupedSubjects () {
       throw new Error(msg)
     }
     const data = await res.json()
-    groupedSubjects.value = data.grouped || []
-
+    groupedSubjects.value = data
   } catch (err) {
     console.error('❌ โหลด grouped subjects ล้มเหลว', err)
     // ถ้าต้องการแสดงข้อความ error ให้เพิ่ม state และแสดงใน template
   }
 }
+
+// โหลดข้อมูลเมื่อ component mount
+onMounted(async () => {
+  await loadGroupedSubjects()
+  await fetchFavorites()
+})
 
 // ไปหน้ารีวิวรายวิชา
 function Comments (subject) {
@@ -160,13 +147,6 @@ function Comments (subject) {
     query: { name: subject.subject_Name || '' },
   })
 }
-
-// โหลดข้อมูลเมื่อ component mount
-onMounted(async () => {
-  await loadGroupedSubjects() // โหลดวิชาทั้งหมด
-  await fetchMe() // โหลดข้อมูลผู้ใช้ (อ่าน Cookie)
-  await fetchFavorites() // โหลด Favorites (ใช้ Cookie)
-})
 </script>
 
 <template>
@@ -185,18 +165,20 @@ onMounted(async () => {
             </span>
 
             <div class="flex pr-20 gap-6">
+              <!-- ปุ่มดูคอมเมนต์ -->
               <button type="button" class="btn btn-ghost btn-circle" @click="Comments(subject)"
                       aria-label="ดูคอมเมนต์ของวิชานี้" title="ดูคอมเมนต์">
                 <FontAwesomeIcon icon="comment-dots" size="xl" class="text-gray-600" />
               </button>
 
+              <!-- ปุ่มหัวใจ -->
               <button
                 type="button"
                 class="btn btn-ghost btn-circle"
                 :aria-pressed="isFav(subject.subject_ID)"
                 @click="toggleFavorite(subject.subject_ID)"
-                :title="isFav(subject.subject_ID) ? 'เอาออกจากรายการโปรด' : 'เพิ่มเป็นรายการโปรด'"
-                :disabled="busy"> <FontAwesomeIcon
+                :title="isFav(subject.subject_ID) ? 'เอาออกจากรายการโปรด' : 'เพิ่มเป็นรายการโปรด'">
+                <FontAwesomeIcon
                   :icon="isFav(subject.subject_ID) ? ['fas','heart'] : ['far','heart']"
                   size="xl"
                   :class="isFav(subject.subject_ID)
