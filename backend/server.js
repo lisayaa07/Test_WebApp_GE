@@ -119,6 +119,15 @@ app.post('/login', async (req, res) => {
     return res.status(500).json({ ok: false, message: 'Database error', error: err.message });
   }
 });
+app.post('/logout', (req, res) => {
+  res.clearCookie('auth', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    path: '/',
+  });
+  return res.json({ ok: true, message: 'Logged out' });
+});
 
 
 
