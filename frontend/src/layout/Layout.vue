@@ -4,7 +4,6 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import profile from '/Photo/profilee.jpg'
 import api from '@/api/api.js'
 
-
 const API_URL = import.meta.env.VITE_API_URL || 'https://test-webapp-ge.onrender.com'
 const router = useRouter()
 const route = useRoute()
@@ -37,7 +36,7 @@ function cancelEditingName() { isEditingName.value = false }
 async function saveName() {
   try {
     const response = await api.put(`/students/${user.value.student_ID}`, {
-      name: editableName.value
+      name: editableName.value,
     })
     const updatedUser = response.data
     user.value.student_Name = updatedUser.student_Name || editableName.value
@@ -50,7 +49,6 @@ async function saveName() {
   }
 }
 
-
 function openProfile() {
   const dlg = document.getElementById('profileModal')
   if (dlg && typeof dlg.showModal === 'function') {
@@ -62,7 +60,7 @@ function openProfile() {
 // -------------------- โหลดข้อมูลผู้ใช้หลัง Login --------------------
 async function fetchUserProfile() {
   try {
-    const res = await api.get('/me') // ✅ ใช้ instance ที่ตั้งค่า withCredentials:true แล้ว
+    const res = await api.get('/me')
     const data = res.data
     if (data.ok && data.user) {
       user.value = {
@@ -95,7 +93,6 @@ async function loadFaculties() {
   }
 }
 
-
 // -------------------- เริ่มโหลดตอนเปิด Layout --------------------
 onMounted(async () => {
   await fetchUserProfile()
@@ -125,8 +122,8 @@ async function logout() {
   }
   router.replace({ name: 'login' })
 }
-
 </script>
+
 
 <template>
   <div class="min-h-screen">
