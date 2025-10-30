@@ -40,7 +40,7 @@ async function saveName() {
     })
     const updatedUser = response.data
     user.value.student_Name = updatedUser.student_Name || editableName.value
-    alert('อัปเดตชื่อสำเร็จ!')
+  
   } catch (error) {
     console.error('Failed to update name:', error)
     alert('เกิดข้อผิดพลาดในการอัปเดตชื่อ')
