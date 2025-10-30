@@ -35,14 +35,21 @@ app.use(express.urlencoded({ extended: true }));
 // ✅ ตรวจ token จาก cookie
 function authRequired(req, res, next) {
   const token = req.cookies?.auth;
-  if (!token) return res.status(401).json({ ok: false, message: 'no token' });
+  if (!token) {
+    return res.status(401).json({ ok: false, message: 'no token' });
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (err) {
-    console.error('JWT verify failed:', err);
+    console.error('JWT verify failed:', err.message);
+    res.clearCookie('auth', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+    });
     return res.status(401).json({ ok: false, message: 'invalid token' });
   }
 }
@@ -149,9 +156,8 @@ app.post('/logout', (req, res) => {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
-    path: '/',
   });
-  return res.json({ ok: true, message: 'Logged out' });
+  res.json({ ok: true, message: 'logged out' });
 });
 
 
