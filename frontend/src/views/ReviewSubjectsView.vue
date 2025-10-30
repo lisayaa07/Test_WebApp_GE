@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import api from '@/api/api.js'
 
+// ✅ ตัวแปรหลัก
 const route = useRoute()
 const router = useRouter()
 
@@ -14,18 +15,21 @@ const reviews = ref([])
 const loading = ref(true)
 const errorMsg = ref('')
 
+// ✅ โหลดข้อมูลรีวิวจาก backend
 async function fetchReviews() {
   try {
     const res = await api.get(`/reviews/${subjectId.value}`)
     if (!res?.data?.ok) throw new Error(res.data?.message || 'โหลดข้อมูลไม่สำเร็จ')
     reviews.value = Array.isArray(res.data.reviews) ? res.data.reviews : []
   } catch (err) {
+    console.error('❌ โหลดรีวิวล้มเหลว:', err)
     errorMsg.value = err.message || 'Request failed'
   } finally {
     loading.value = false
   }
 }
 
+// ✅ โหลดเมื่อ component mount
 onMounted(fetchReviews)
 </script>
 
@@ -40,12 +44,12 @@ onMounted(fetchReviews)
         วิชา {{ subjectName }}
       </h2>
 
-      <!-- สถานะโหลด -->
+      <!-- โหลด -->
       <div v-if="loading" class="text-center text-gray-500 text-lg py-8">
         กำลังโหลดข้อมูล...
       </div>
 
-      <!-- แสดง error -->
+      <!-- error -->
       <div v-else-if="errorMsg" class="alert alert-error text-center">
         {{ errorMsg }}
       </div>
@@ -58,7 +62,7 @@ onMounted(fetchReviews)
         ยังไม่มีรีวิวจากรุ่นพี่สำหรับรายวิชานี้
       </div>
 
-      <!-- แสดงรีวิว -->
+      <!-- มีรีวิว -->
       <div v-else class="ml-5 mt-5">
         <div
           v-for="(r, i) in reviews"
@@ -71,12 +75,13 @@ onMounted(fetchReviews)
         </div>
       </div>
 
+      <!-- ปุ่มย้อนกลับ -->
       <div class="text-center mt-8">
         <RouterLink
           to="/showresults"
           class="btn bg-pink-300 hover:bg-pink-500 text-white"
         >
-          🔙 ย้อนกลับ
+         ย้อนกลับ
         </RouterLink>
       </div>
     </div>
