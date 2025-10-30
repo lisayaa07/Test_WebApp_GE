@@ -34,56 +34,44 @@ onMounted(fetchReviews)
 </script>
 
 <template>
-  <Layout>
-    <div class="bg-[#6495ED]/35 shadow p-6 rounded-3xl mt-10 mx-3">
-      <h1 class="text-3xl font-bold text-black/70 mb-4">
-        รีวิวจากรุ่นพี่
-      </h1>
+    <Layout>
+        <div class="p-6 space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="text-2xl font-bold">รีวิวจากรุ่นพี่</div>
+                <button class="btn btn-active" @click="back">ย้อนกลับ</button>
+            </div>
 
-      <h2 class="text-2xl font-semibold mb-6 text-[#192F4E]">
-        วิชา {{ subjectName }}
-      </h2>
+            <div class=" bg-base-200/70 rounded-4xl py-5 shadow">
+                <div class="ml-13">
+                    <div class="text-xl font-bold">
+                        วิชา {{ subjectName }}
+                    </div>
 
-      <!-- โหลด -->
-      <div v-if="loading" class="text-center text-gray-500 text-lg py-8">
-        กำลังโหลดข้อมูล...
-      </div>
+                    <div v-if="loading" class="p-4">กำลังโหลดคอมเมนต์…</div>
+                    <div v-else-if="errorMsg" class="alert alert-error">{{ errorMsg }}</div>
 
-      <!-- error -->
-      <div v-else-if="errorMsg" class="alert alert-error text-center">
-        {{ errorMsg }}
-      </div>
+                    <div v-else>
+                        <div class="mb-2 text-sm opacity-70">ทั้งหมด {{ comments.length }} คอมเมนต์</div>
 
-      <!-- ไม่มีรีวิว -->
-      <div
-        v-else-if="!reviews.length"
-        class="text-center opacity-60 py-6 bg-white/70 rounded-2xl"
-      >
-        ยังไม่มีรีวิวจากรุ่นพี่สำหรับรายวิชานี้
-      </div>
+                        <div v-if="!comments.length" class="opacity-60">ยังไม่มีคอมเมนต์สำหรับวิชานี้</div>
 
-      <!-- มีรีวิว -->
-      <div v-else class="ml-5 mt-5">
-        <div
-          v-for="(r, i) in reviews"
-          :key="r.id || i"
-          class="bg-white/70 hover:bg-white/90 rounded-2xl p-6 mb-4 shadow transition"
-        >
-          <p class="text-lg text-gray-800 leading-relaxed">
-            “{{ r.text || '-' }}”
-          </p>
+                        <div v-else class="space-y-3">
+                            <div v-for="c in comments" :key="c.id" class="chat chat-start">
+                                <div class="chat-bubble">
+                                    <!-- <div class="flex items-center justify-between">
+                                    <div class="text-sm">
+                                        <span v-if="c.rating">★ {{ c.rating }}</span>
+                                        <span v-if="c.date" class="ml-2">{{ c.date }}</span>
+                                    </div>
+                                </div> -->
+                                    <p class="text-base whitespace-pre-wrap">{{ c.text }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
-      </div>
-
-      <!-- ปุ่มย้อนกลับ -->
-      <div class="text-center mt-8">
-        <RouterLink
-          to="/showresults"
-          class="btn bg-pink-300 hover:bg-pink-500 text-white"
-        >
-         ย้อนกลับ
-        </RouterLink>
-      </div>
-    </div>
-  </Layout>
+    </Layout>
 </template>
