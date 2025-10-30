@@ -1,9 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/api',          // ✅ ใช้ proxy ของ Vercel
-  withCredentials: true,    // ✅ ให้แนบ cookie
+  baseURL: 'https://test-webapp-ge.onrender.com',  // 👈 ตรงนี้แทน /api
+  withCredentials: true,
   timeout: 15000,
-})
-
-export default api
+});
