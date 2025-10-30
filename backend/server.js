@@ -584,12 +584,28 @@ app.post('/cbr-match', async (req, res) => {
     });
 
     results.sort((a, b) => b.similarity - a.similarity);
-    res.json({ ok: true, top: results.slice(0, 3), all: results });
-  } catch (err) {
-    console.error("❌ CBR Error:", err);
-    res.status(500).json({ ok: false, message: "Database Error", error: err.message });
-  }
+
+// ✅ จัดกลุ่มผลลัพธ์ตาม group_type_name
+const grouped = {};
+for (const r of results) {
+  const key = r.group_type_name || r.group_type || 'ไม่ระบุหมวด';
+  if (!grouped[key]) grouped[key] = [];
+  grouped[key].push(r);
+}
+
+const groups = Object.keys(grouped).map(k => ({
+  group_type_name: k,
+  items: grouped[k]
+}));
+
+// ✅ ส่ง groups กลับไปด้วย
+res.json({
+  ok: true,
+  groups,                   // เพิ่มตรงนี้
+  top: results.slice(0, 3),
+  all: results
 });
+
 
 
 
