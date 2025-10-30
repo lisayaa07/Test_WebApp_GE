@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import profile from '/Photo/profilee.jpg'
-import axios from 'axios'
+
 import api from '@/api/api.js'
 
 
@@ -37,7 +37,7 @@ function cancelEditingName() { isEditingName.value = false }
 
 async function saveName() {
   try {
-    const response = await axios.put(`${API_URL}/students/${user.value.student_ID}`, {
+    const response = await api.put(`/students/${user.value.student_ID}`, {
       name: editableName.value
     })
     const updatedUser = response.data
@@ -50,6 +50,7 @@ async function saveName() {
     isEditingName.value = false
   }
 }
+
 
 function openProfile() {
   const dlg = document.getElementById('profileModal')
