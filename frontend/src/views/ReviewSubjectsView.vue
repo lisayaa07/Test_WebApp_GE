@@ -1,86 +1,44 @@
 <script setup>
-import Layout from '@/layout/Layout.vue'
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/api/api.js'
+import Layout from '@/layout/Layout.vue'
 
 const route = useRoute()
 const router = useRouter()
 
-// subjectId จาก route
-const subjectId = String(route.params.id || '')
-// subjectName เริ่มจาก query (ถ้ามี) — จะถูกอัปเดตจากผลตอบกลับหาก backend คืนชื่อ
-const subjectName = ref(route.query.name || (subjectId ? `วิชา #${subjectId}` : ''))
-
-const loading = ref(false)
+const subjectId = ref(route.params.id)
+const subjectName = ref(route.query.name || '')
+const reviews = ref([])
+const loading = ref(true)
 const errorMsg = ref('')
-const comments = ref([])
 
-// Base API URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-
-// helper: headers (ใส่ Authorization ถ้ามี token)
-function authHeaders() {
-  const headers = { 'Content-Type': 'application/json' }
-  const token = localStorage.getItem('token')
-  if (token) headers.Authorization = `Bearer ${token}`
-  return headers
-}
-
-// แปลงให้แสดงผลง่าย (รองรับโครงสร้างที่ต่างกันได้เล็กน้อย)
-function normalize(r) {
-  return {
-    id: r?.id ?? r?.fr_ID ?? crypto?.randomUUID?.() ?? Math.random(),
-    text: r?.text ?? r?.review ?? r?.comment ?? r?.review_text ?? '',
-    author: r?.author?.name ?? r?.author ?? r?.user_name ?? r?.student_Name ?? 'ผู้ใช้',
-    rating: r?.rating ?? r?.score ?? null,
-    date: r?.created_at ?? r?.date ?? r?.fr_Date ?? null,
-  }
-}
-
-// โหลดรีวิวทั้งหมด
-async function fetchAllReviews() {
-  if (!subjectId) {
-    errorMsg.value = 'ไม่มี subjectId'
-    return
-  }
-
-  loading.value = true
-  errorMsg.value = ''
-  comments.value = []
-
+// ✅ โหลดรีวิวจาก backend
+async function fetchReviews() {
   try {
-    const url = `${API_URL}/subjects/${encodeURIComponent(subjectId)}/reviews`
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: authHeaders()
-    })
-    // อ่าน json (หรือ null ถ้าไม่ใช่ json)
-    const j = await res.json().catch(() => null)
-    if (!res.ok) {
-      throw new Error(j?.message || res.statusText || 'Request failed')
-    }
+    const res = await api.get(`/reviews/${subjectId.value}`)
+    console.log('✅ รีวิวที่ได้:', res.data)
+    if (!res.data.ok) throw new Error(res.data.message || 'โหลดข้อมูลไม่สำเร็จ')
 
-    // ถ้า backend คืนชื่อวิชา ก็อัปเดต
-    if (j?.subjectName) subjectName.value = j.subjectName
-
-    // หา array ของรีวิว: รองรับทั้ง { reviews: [...] } หรือ [...direct array...]
-    const list = Array.isArray(j?.reviews) ? j.reviews : (Array.isArray(j) ? j : (Array.isArray(j?.items) ? j.items : []))
-    comments.value = list.map(normalize)
-  } catch (e) {
-    console.error('โหลดคอมเมนต์ไม่สำเร็จ', e)
-    errorMsg.value = e?.message || 'โหลดคอมเมนต์ไม่สำเร็จ'
+    reviews.value = Array.isArray(res.data.reviews) ? res.data.reviews : []
+  } catch (err) {
+    console.error('❌ โหลดรีวิวล้มเหลว:', err)
+    errorMsg.value = err.message || 'Request failed'
   } finally {
     loading.value = false
   }
 }
 
-onMounted(fetchAllReviews)
+onMounted(() => {
+  fetchReviews()
+})
 
-function back() {
+// ✅ กลับไปหน้าก่อนหน้า
+function goBack() {
   router.back()
 }
 </script>
+
 
 <template>
     <Layout>
