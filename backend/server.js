@@ -107,14 +107,15 @@ app.post('/login', async (req, res) => {
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
 
-    res.cookie('auth', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none', // ✅ ต้องเป็น 'none' เพื่ออนุญาต cross-domain
-      domain: '.onrender.com', // ✅ ใส่โดเมนของ backend
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    })
+   res.cookie('auth', token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none', // ✅ cross-domain ได้
+    domain: 'test-webapp-ge.onrender.com', // ✅ ต้องตรงกับ backend จริง
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  })
+
 
 
     console.log('✅ Login success:', email);
