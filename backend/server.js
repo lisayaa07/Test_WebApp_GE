@@ -133,6 +133,8 @@ app.post('/login', async (req, res) => {
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', 'https://test-web-app-ge.vercel.app');
 
    // ตอนที่คุณ login สำเร็จ (หลังตรวจรหัสผ่านแล้ว)
     res.cookie('auth', token, {
@@ -141,11 +143,6 @@ app.post('/login', async (req, res) => {
       sameSite: 'none',   // ✅ เพื่ออนุญาต cross-site cookie
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 วัน
     });
-
-
-
-
-
 
     console.log('✅ Login success:', email);
     return res.json({ ok: true, user: payload });
