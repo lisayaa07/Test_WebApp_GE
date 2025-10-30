@@ -18,7 +18,14 @@ const loading = ref(false)
 const errorMsg = ref('')
 const busy = ref(false)
 
-const isLoggedIn = computed(() => !!user.value?.student_ID)
+import { user, fetchUser, isLoggedIn } from '@/composables/useAuth.js'
+
+onMounted(async () => {
+  const ok = await fetchUser()
+  if (!ok) return router.replace({ name: 'login' })
+  await fetchFavoritesGrouped()
+})
+
 
 // ---------- utils ----------
 async function handle401(err) {
