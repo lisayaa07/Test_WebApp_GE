@@ -1,38 +1,31 @@
+
 import { defineStore } from 'pinia'
 
 export const useResultsStore = defineStore('results', {
   state: () => ({
-    resultGroups: [],   // กลุ่มผลลัพธ์จาก backend (ใช้แสดงรายการ)
-    results: [],        // รายการ top/all ที่ map similarity แล้ว (ถ้าต้องใช้ที่อื่น)
-    payload: null,      // เก็บ payload ที่ส่งไป (เผื่อ debug/ย้อนกลับ)
-    errorMsg: '',
-    reviewsBySubject: {},       // เผื่ออยากไปโชว์ error ที่หน้าผลลัพธ์
+    results: [],         // เก็บผลลัพธ์รายวิชา (จาก backend)
+    resultGroups: [],    // เก็บกลุ่มวิชาที่ backend ส่งมา
+    errorMsg: '',        // ข้อความ error (ถ้ามี)
   }),
+
   actions: {
-    setResults({ resultGroups = [], results = [], payload = null, errorMsg = '' }) {
-      this.resultGroups = resultGroups
-      this.results = results
-      this.payload = payload
-      this.errorMsg = errorMsg
-      this.indexReviewsFromGroups()
-    },
-    indexReviewsFromGroups() {
-      const map = {}
-      for (const g of this.resultGroups || []) {
-        for (const c of g.items || []) {
-          const arr = Array.isArray(c.reviews)
-            ? c.reviews
-            : (c.review ? [c.review] : [])
-          map[c.subject_ID] = arr
-        }
-      }
-      this.reviewsBySubject = map
-    },
-    clear() {
-      this.resultGroups = []
-      this.results = []
-      this.payload = null
+    // ✅ เซ็ตค่าผลลัพธ์หลังคำนวณเสร็จ
+    setResults(payload) {
+      this.results = payload.results || []
+      this.resultGroups = payload.resultGroups || []
       this.errorMsg = ''
-    }
-  }
+    },
+
+    // ✅ ตั้งค่า error
+    setError(msg) {
+      this.errorMsg = msg || 'เกิดข้อผิดพลาด'
+    },
+
+    // ✅ รีเซ็ตทั้งหมด (ใช้กับปุ่ม “เริ่มทำใหม่”)
+    $reset() {
+      this.results = []
+      this.resultGroups = []
+      this.errorMsg = ''
+    },
+  },
 })
