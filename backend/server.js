@@ -680,15 +680,13 @@ app.get('/reviews/:subjectId', async (req, res) => {
       return res.status(400).json({ ok: false, message: 'subjectId is required' });
     }
 
-    // ✅ ดึงรีวิว + เกรด + ชื่อคณะ + วันที่ล่าสุด
     const sql = `
       SELECT 
         fr.fr_ID AS id,
         fr.review AS text,
         gm.grade_Name AS grade,
         f.faculty_Name AS faculty,
-        s.student_level AS level,
-        fr.created_at
+        s.student_level AS level
       FROM Form_review fr
       JOIN Form_ge fg ON fg.id = fr.fg_ID
       LEFT JOIN Grade_map gm ON gm.grade_ID = fr.grade_ID
@@ -700,7 +698,6 @@ app.get('/reviews/:subjectId', async (req, res) => {
 
     const [rows] = await db.query(sql, [subjectId]);
 
-    // ✅ ตอบกลับให้ frontend ใช้ได้เลย
     res.json({
       ok: true,
       subject_ID: subjectId,
@@ -711,7 +708,7 @@ app.get('/reviews/:subjectId', async (req, res) => {
         grade: r.grade || '-',
         faculty: r.faculty || '-',
         level: r.level || '-',
-        created_at: r.created_at || null
+        created_at: null // ไม่มีในฐานข้อมูล
       }))
     });
   } catch (err) {
