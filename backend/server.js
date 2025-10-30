@@ -671,6 +671,55 @@ function normalizeSubjectId(x) {
   return String(x || '').replace(/\s+/g, '').toUpperCase().slice(0, 6);
 }
 
+// ✅ ดึงคอมเมนต์ (รีวิว) ของวิชาเดียว
+app.get('/reviews/:subjectId', async (req, res) => {
+  try {
+    const subjectId = req.params.subjectId.trim();
+
+    if (!subjectId) {
+      return res.status(400).json({ ok: false, message: 'subjectId is required' });
+    }
+
+    // ✅ ดึงรีวิว + เกรด + ชื่อคณะ + วันที่ล่าสุด
+    const sql = `
+      SELECT 
+        fr.fr_ID AS id,
+        fr.review AS text,
+        gm.grade_Name AS grade,
+        f.faculty_Name AS faculty,
+        s.student_level AS level,
+        fr.created_at
+      FROM Form_review fr
+      JOIN Form_ge fg ON fg.id = fr.fg_ID
+      LEFT JOIN Grade_map gm ON gm.grade_ID = fr.grade_ID
+      LEFT JOIN Student s ON s.student_ID = fg.student_ID
+      LEFT JOIN Faculty f ON f.faculty_ID = s.faculty_ID
+      WHERE fr.subject_ID = ?
+      ORDER BY fr.fr_ID DESC
+    `;
+
+    const [rows] = await db.query(sql, [subjectId]);
+
+    // ✅ ตอบกลับให้ frontend ใช้ได้เลย
+    res.json({
+      ok: true,
+      subject_ID: subjectId,
+      count: rows.length,
+      reviews: rows.map(r => ({
+        id: r.id,
+        text: r.text,
+        grade: r.grade || '-',
+        faculty: r.faculty || '-',
+        level: r.level || '-',
+        created_at: r.created_at || null
+      }))
+    });
+  } catch (err) {
+    console.error('❌ /reviews/:subjectId error:', err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
 
 // ✅ ดึงรายการโปรดทั้งหมด (เฉพาะ ID)
 app.get('/favorites/ids', authRequired, async (req, res) => {
