@@ -768,7 +768,7 @@ app.get('/reviews/:subjectId', async (req, res) => {
 
 
 // ✅ ดึงรายการโปรดทั้งหมด (เฉพาะ ID)
-app.get('/favorites/ids', authRequired, async (req, res) => {
+app.get('/favorites/ids',  async (req, res) => {
   try {
     const studentId = String(req.user.student_ID || '').trim();
     if (!studentId) return res.status(400).json({ ok: false, message: 'student_id missing in token' });
@@ -785,7 +785,7 @@ app.get('/favorites/ids', authRequired, async (req, res) => {
 });
 
 // ✅ เพิ่มรายการโปรด (ไม่ต้องส่ง student_id แล้ว)
-app.post('/favorites', authRequired, async (req, res) => {
+app.post('/favorites',  async (req, res) => {
   try {
     const studentId = String(req.user.student_ID || '').trim();
     const { subject_id } = req.body || {};
@@ -820,7 +820,7 @@ app.post('/favorites', authRequired, async (req, res) => {
 });
 
 // ✅ เอาออกจากรายการโปรด (ไม่ต้องส่ง student_id แล้ว)
-app.delete('/favorites', authRequired, async (req, res) => {
+app.delete('/favorites',  async (req, res) => {
   try {
     const studentId = String(req.user.student_ID || '').trim();
     const subjectId = normalizeSubjectId(req.query.subject_id);
@@ -841,7 +841,7 @@ app.delete('/favorites', authRequired, async (req, res) => {
 });
 
 // ✅ ดึงรายการโปรดแบบ grouped (ไม่ต้องส่ง student_id)
-app.get('/favorites/grouped', authRequired, async (req, res) => {
+app.get('/favorites/grouped',  async (req, res) => {
   try {
     const studentId = String(req.user.student_ID || '').trim();
     if (!studentId) return res.status(400).json({ ok: false, message: 'student_id missing in token' });
