@@ -12,7 +12,7 @@ library.add(farHeart, fasHeart)
 const router = useRouter()
 
 // ---------- state ----------
-const user = ref(null)
+
 const groupedFavs = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
