@@ -639,13 +639,11 @@ app.get('/grouped-subjects', async (req, res) => {
         g.groupType_Name,
         s.subject_ID,
         s.subject_Name
-      FROM Group_Type g
-      LEFT JOIN Subject s ON s.groupType_ID = g.groupType_ID   -- ✅ ใช้ชื่อ column ที่ตรงกับ DB จริง
+      FROM Group_Type AS g
+      LEFT JOIN Subject AS s ON s.groupType_ID = g.groupType_ID
       ORDER BY g.groupType_ID, s.subject_Name
     `;
-
     const [rows] = await db.query(sql);
-
     const grouped = [];
 
     rows.forEach(row => {
@@ -658,7 +656,6 @@ app.get('/grouped-subjects', async (req, res) => {
         };
         grouped.push(group);
       }
-
       if (row.subject_ID) {
         group.subjects.push({
           subject_ID: row.subject_ID,
@@ -669,11 +666,10 @@ app.get('/grouped-subjects', async (req, res) => {
 
     res.json(grouped);
   } catch (err) {
-    console.error('❌ grouped-subjects error:', err);
+    console.error('❌ grouped-subjects error (SQL failed):', err.message);
     res.status(500).json({ ok: false, message: 'Database Error', error: err.message });
   }
 });
-
 
 
 function normalizeSubjectId(x) {
