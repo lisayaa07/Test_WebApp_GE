@@ -471,7 +471,6 @@ app.post('/register', async (req, res) => {
 
 
 /* ---------- Case-based Reasoning ---------- */
-
 app.post('/cbr-match', async (req, res) => {
   const {
     interestd = [],
@@ -591,9 +590,20 @@ app.post('/cbr-match', async (req, res) => {
 
     results.sort((a, b) => b.similarity - a.similarity);
 
+    // ✅ ลบวิชาซ้ำ เหลือเฉพาะตัวที่ similarity สูงสุด
+    const uniqueBySubject = {};
+    for (const r of results) {
+      const id = String(r.subject_ID || '').trim();
+      if (!id) continue;
+      if (!uniqueBySubject[id] || r.similarity > uniqueBySubject[id].similarity) {
+        uniqueBySubject[id] = r;
+      }
+    }
+    const uniqueResults = Object.values(uniqueBySubject);
+
     // ✅ จัดกลุ่มตาม group_type_name
     const grouped = {};
-    for (const r of results) {
+    for (const r of uniqueResults) {
       const key = r.group_type_name || r.group_type || 'ไม่ระบุหมวด';
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(r);
@@ -609,8 +619,8 @@ app.post('/cbr-match', async (req, res) => {
     res.json({
       ok: true,
       groups,
-      top: results.slice(0, 3),
-      all: results,
+      top: uniqueResults.slice(0, 3),
+      all: uniqueResults,
     });
 
   } catch (err) {
