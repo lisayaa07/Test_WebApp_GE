@@ -182,7 +182,7 @@ app.get('/faculty', async (req, res) => {
 
 
 // ✅ API วิชา - ดึงเฉพาะกลุ่มวิชา (distinct group_type)
-app.get("/subject-groups", async (req, res) => {
+app.get("/subject-groups", authRequired, async (req, res) => {
   try {
     const [results] = await db.query("SELECT GroupType_ID, GroupType_Name FROM Group_Type");
     res.json(results);
@@ -925,7 +925,7 @@ app.get('/popular-subjects', async (req, res) => {
 });
 
 //ดึงชื่อในตารางstudents
-app.put('/students/:id', async (req, res) => {
+app.put('/students/:id',authRequired, async (req, res) => {
   const studentId = req.params.id;
   const { name } = req.body;
 

@@ -58,16 +58,21 @@ async function fetchFavoritesGrouped() {
   loading.value = true
   errorMsg.value = ''
   try {
-    const { data } = await api.get('/favorites/grouped')
-    groupedFavs.value = Array.isArray(data) ? data : []
+    const res = await api.get('/favorites/grouped', { withCredentials: true }) // ✅ เพิ่มตรงนี้กันเหนียว
+    groupedFavs.value = Array.isArray(res.data) ? res.data : []
   } catch (e) {
-    await handle401(e)
-    console.error('❌ โหลด favorites grouped ล้มเหลว', e)
-    errorMsg.value = e.message || 'โหลดรายการโปรดไม่สำเร็จ'
+    // ✅ ตรวจทั้ง response และ network error
+    if (e.response && e.response.status === 401) {
+      router.replace({ name: 'login' }) // ✅ กลับไปหน้า login ถ้า session หมด
+    } else {
+      console.error('❌ โหลด favorites grouped ล้มเหลว:', e)
+      errorMsg.value = e.message || 'โหลดรายการโปรดไม่สำเร็จ'
+    }
   } finally {
     loading.value = false
   }
 }
+
 
 // ---------- เพิ่มรายการโปรด ----------
 async function addFavorite(subjectId) {
@@ -122,6 +127,7 @@ onMounted(async () => {
   await fetchMe()
   if (isLoggedIn.value) await fetchFavoritesGrouped()
 })
+
 </script>
 
 <template>
