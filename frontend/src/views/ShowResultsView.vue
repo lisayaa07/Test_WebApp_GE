@@ -1,43 +1,57 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { onMounted, ref } from 'vue'
+import { useResultsStore } from '@/stores/results'
+import Layout from '@/layout/Layout.vue'
 
-const route = useRoute()
+const resultsStore = useResultsStore()
+
 const results = ref([])
+const resultGroups = ref([])
 
 onMounted(() => {
-  try {
-    const queryResults = route.query.results
-    results.value = queryResults ? JSON.parse(queryResults) : []
-    console.log('📦 ผลลัพธ์ที่ได้รับ:', results.value)
-  } catch (err) {
-    console.error('❌ อ่านผลลัพธ์ไม่สำเร็จ:', err)
-  }
+  // ✅ ดึงข้อมูลจาก Pinia store
+  results.value = resultsStore.results || []
+  resultGroups.value = resultsStore.resultGroups || []
+
+  console.log('📦 ผลลัพธ์ทั้งหมด:', results.value)
+  console.log('📦 กลุ่มวิชา:', resultGroups.value)
 })
 </script>
 
 <template>
-  <section class="p-8">
-    <h1 class="text-2xl font-bold mb-6">📊 ผลลัพธ์การคำนวณ</h1>
+  <Layout>
+    <section class="p-6">
+      <h1 class="text-2xl font-bold mb-6">📊 ผลลัพธ์การวิเคราะห์</h1>
 
-    <div v-if="!results.length" class="text-gray-500">
-      ไม่มีข้อมูลผลลัพธ์
-    </div>
-
-    <div v-else>
-      <div
-        v-for="(r, index) in results"
-        :key="r.subject_ID || index"
-        class="p-4 mb-4 bg-base-200 rounded-lg shadow"
-      >
-        <h2 class="text-lg font-semibold">
-          {{ r.subject_ID }} - {{ r.subject_Name }}
-        </h2>
-        <p>กลุ่ม: {{ r.group_type_name }}</p>
-        <p>ความเหมือน: {{ r.similarity }}%</p>
-        <p>เกรดเฉลี่ย: {{ r.grade_Name }}</p>
-        <p class="text-sm mt-1 text-gray-600 italic">{{ r.review }}</p>
+      <div v-if="!results.length">
+        <p class="text-gray-500 text-lg">ไม่พบข้อมูลผลลัพธ์ กรุณากลับไปทำแบบประเมินใหม่</p>
+        <router-link to="/matchcase" class="btn btn-primary mt-4">ย้อนกลับ</router-link>
       </div>
-    </div>
-  </section>
+
+      <div v-else>
+        <!-- ✅ แสดงผลรายวิชา -->
+        <div
+          v-for="(r, idx) in results"
+          :key="r.subject_ID || idx"
+          class="p-4 mb-4 bg-blue-100 rounded-xl shadow hover:bg-blue-200 transition"
+        >
+          <h2 class="text-xl font-semibold text-blue-900">
+            {{ r.subject_ID }} - {{ r.subject_Name }}
+          </h2>
+          <p class="text-gray-700">
+            ความเหมือน: <b>{{ (r.similarity ?? 0).toFixed(2) }}%</b>
+          </p>
+          <p class="text-gray-700">หมวดวิชา: {{ r.group_type_name || '-' }}</p>
+          <p class="text-gray-700">เกรดเฉลี่ย: {{ r.grade_Name || '-' }}</p>
+          <p v-if="r.review" class="text-gray-600 italic mt-1">
+            "{{ r.review }}"
+          </p>
+        </div>
+
+        <div class="mt-6">
+          <router-link to="/matchcase" class="btn btn-outline btn-primary">🔁 ทำใหม่อีกครั้ง</router-link>
+        </div>
+      </div>
+    </section>
+  </Layout>
 </template>
