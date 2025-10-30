@@ -5,7 +5,7 @@ const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('./db');
-const authRequired = require('./middleware/auth'); // ✅ เปลี่ยนเป็น require
+
 
 const app = express();
 app.set('trust proxy', 1);
