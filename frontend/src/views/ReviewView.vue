@@ -2,6 +2,7 @@
 import Layout from '@/layout/Layout.vue'
 import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import api from '@/api/api.js'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://test-webapp-ge.onrender.com'
 const router = useRouter()

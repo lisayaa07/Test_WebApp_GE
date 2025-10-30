@@ -6,6 +6,8 @@ import { useRouter } from 'vue-router'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faCommentDots } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import api from '@/api/api.js'
+
 library.add(faCommentDots)
 
 // Base API URL (ตั้งใน .env: VITE_API_URL)

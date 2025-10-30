@@ -3,6 +3,7 @@ import Layout from '@/layout/Layout.vue'
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useResultsStore } from '@/stores/results'
+import api from '@/api/api.js'
 
 const router = useRouter()
 const store = useResultsStore()
