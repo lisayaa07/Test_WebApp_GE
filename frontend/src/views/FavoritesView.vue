@@ -124,9 +124,12 @@ function goToReviews(subject) {
 
 // ---------- lifecycle ----------
 onMounted(async () => {
-  await fetchMe()
-  if (isLoggedIn.value) await fetchFavoritesGrouped()
+  await fetchMe()              // โหลดโปรไฟล์ก่อน
+  if (isLoggedIn.value) {      // ถ้ามี session แล้ว
+    await fetchFavoritesGrouped() // 👉 โหลดรายการโปรด
+  }
 })
+
 
 </script>
 
