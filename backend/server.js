@@ -134,12 +134,14 @@ app.post('/login', async (req, res) => {
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
 
-   res.cookie('auth', token, {
+   // ตอนที่คุณ login สำเร็จ (หลังตรวจรหัสผ่านแล้ว)
+    res.cookie('auth', token, {
       httpOnly: true,
-      secure: true, // ✅ สำคัญ! ต้องเป็น true เมื่อใช้ HTTPS
-      sameSite: 'None', // ✅ เพื่อให้ cookie ถูกส่งข้าม domain ได้
+      secure: true,       // ✅ ต้องใช้ https (Render ใช้อยู่แล้ว)
+      sameSite: 'none',   // ✅ เพื่ออนุญาต cross-site cookie
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 วัน
-    })
+    });
+
 
 
 
