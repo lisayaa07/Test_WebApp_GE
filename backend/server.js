@@ -36,6 +36,12 @@ app.use(express.urlencoded({ extended: true }));
 function authRequired(req, res, next) {
   const token = req.cookies?.auth;
   if (!token) {
+    // ❌ ไม่มี token → ลบ cookie เผื่อเหลือจาก session เก่า
+    res.clearCookie('auth', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+    });
     return res.status(401).json({ ok: false, message: 'no token' });
   }
 
@@ -45,6 +51,7 @@ function authRequired(req, res, next) {
     next();
   } catch (err) {
     console.error('JWT verify failed:', err.message);
+    // ❌ token ผิดหรือหมดอายุ → เคลียร์ cookie ทันที
     res.clearCookie('auth', {
       httpOnly: true,
       secure: true,
@@ -53,6 +60,7 @@ function authRequired(req, res, next) {
     return res.status(401).json({ ok: false, message: 'invalid token' });
   }
 }
+
 
 // ✅ ใช้งาน
 app.get('/me', authRequired, async (req, res) => {
