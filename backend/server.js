@@ -57,14 +57,28 @@ app.get('/me', authRequired, async (req, res) => {
   if (!student_ID) return res.json({ ok: false });
 
   const [rows] = await db.query(`
-    SELECT s.*, f.faculty_Name 
+    SELECT s.student_ID, s.student_Name, s.student_level, s.faculty_ID, f.faculty_Name, u.email
     FROM Student s
     LEFT JOIN Faculty f ON s.faculty_ID = f.faculty_ID
+    LEFT JOIN Users u ON s.email = u.email
     WHERE s.student_ID = ?
   `, [student_ID]);
 
   if (!rows.length) return res.json({ ok: false });
-  res.json({ ok: true, user: rows[0] });
+
+  // ✅ ปรับชื่อให้ตรงกับ Layout.vue
+  const row = rows[0];
+  res.json({
+    ok: true,
+    user: {
+      student_ID: row.student_ID,
+      student_Name: row.student_Name,
+      student_level: row.student_level, 
+      faculty_ID: row.faculty_ID,
+      faculty_Name: row.faculty_Name,
+      email: row.email,
+    }
+  });
 });
 
 
