@@ -4,12 +4,6 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import api from '@/api/api.js'
 
-// FontAwesome (เฉพาะ comment)
-import { library } from '@fortawesome/fontawesome-svg-core'
-import { faCommentDots } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-library.add(faCommentDots)
-
 const route = useRoute()
 const router = useRouter()
 
@@ -46,31 +40,34 @@ onMounted(fetchReviews)
         วิชา {{ subjectName }}
       </h2>
 
+      <!-- สถานะโหลด -->
       <div v-if="loading" class="text-center text-gray-500 text-lg py-8">
         กำลังโหลดข้อมูล...
       </div>
 
+      <!-- แสดง error -->
       <div v-else-if="errorMsg" class="alert alert-error text-center">
         {{ errorMsg }}
       </div>
 
-      <div v-else-if="!reviews.length" class="text-center opacity-60 py-6">
+      <!-- ไม่มีรีวิว -->
+      <div
+        v-else-if="!reviews.length"
+        class="text-center opacity-60 py-6 bg-white/70 rounded-2xl"
+      >
         ยังไม่มีรีวิวจากรุ่นพี่สำหรับรายวิชานี้
       </div>
 
+      <!-- แสดงรีวิว -->
       <div v-else class="ml-5 mt-5">
         <div
           v-for="(r, i) in reviews"
           :key="r.id || i"
-          class="flex justify-between items-start bg-white/70 hover:bg-white/90 rounded-2xl p-5 mb-4 shadow"
+          class="bg-white/70 hover:bg-white/90 rounded-2xl p-6 mb-4 shadow transition"
         >
-          <div class="flex-1 text-xl text-gray-800 leading-relaxed">
+          <p class="text-lg text-gray-800 leading-relaxed">
             “{{ r.text || '-' }}”
-          </div>
-
-          <div class="flex gap-3 items-center pl-4">
-            <FontAwesomeIcon icon="comment-dots" size="lg" class="text-[#192F4E]" />
-          </div>
+          </p>
         </div>
       </div>
 
@@ -79,7 +76,7 @@ onMounted(fetchReviews)
           to="/showresults"
           class="btn bg-pink-300 hover:bg-pink-500 text-white"
         >
-           ย้อนกลับ
+          🔙 ย้อนกลับ
         </RouterLink>
       </div>
     </div>
