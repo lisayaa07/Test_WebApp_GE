@@ -108,13 +108,13 @@ app.post('/login', async (req, res) => {
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
 
    res.cookie('auth', token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none', // ✅ cross-domain ได้
-    domain: 'test-webapp-ge.onrender.com', // ✅ ต้องตรงกับ backend จริง
-    path: '/',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  })
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',  // ✅ ต้องมี
+      path: '/',          // ✅ ต้องมี
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 วัน
+    })
+
 
 
 
