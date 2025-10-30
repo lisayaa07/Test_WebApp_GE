@@ -99,82 +99,52 @@ function normalizeGroups(data) {
 
 
 //โหลดข้อมูลตอน mount
-async function onSubmit() {
-  errorMsg.value = ''
-
-  const missingFields = []
-  if (selectedInterestd.value.length === 0) missingFields.push('ความสนใจ')
-  if (selectedGroupTypes.value.length === 0) missingFields.push('หมวดวิชา')
-  if (!selectedGroupwork.value) missingFields.push('งานกลุ่ม')
-  if (!selectedsolowork.value) missingFields.push('งานเดี่ยว')
-  if (!selectedexam.value) missingFields.push('การสอบ')
-  if (!selectedattendance.value) missingFields.push('การเช็คชื่อ')
-  if (selectedinstruction.value.length === 0) missingFields.push('รูปแบบการสอน')
-  if (!selectedpresent.value) missingFields.push('การนำเสนอ')
-  if (!selectedexperience.value) missingFields.push('ประสบการณ์ใหม่ๆ')
-  if (!selectedchallenge.value) missingFields.push('ความยากง่าย')
-  if (!selectedtime.value) missingFields.push('ช่วงเวลา')
-  if (missingFields.length > 0) {
-    errorMsg.value = `กรุณาตอบคำถามให้ครบ: ${missingFields.join(', ')}`
-    return
-  }
-
-  loading.value = true
-  results.value = []
-
-  const toD = (v) => /^\d+$/.test(String(v)) ? `D${v}` : String(v)
-  const instructionTokens = Array.isArray(selectedinstruction.value)
-    ? selectedinstruction.value.map(toD)
-    : []
-
+// ✅ โหลดข้อมูลจากฐานข้อมูลเมื่อเปิดหน้า
+onMounted(async () => {
   try {
-    const payload = {
-      interestd: selectedInterestd.value,
-      groupwork: selectedGroupwork.value,
-      solowork: selectedsolowork.value,
-      exam: selectedexam.value,
-      attendance: selectedattendance.value,
-      instructions: instructionTokens,
-      instruction: instructionTokens[0] || '',
-      instruction_CSV: instructionTokens.join(','),
-      present: selectedpresent.value,
-      experience: selectedexperience.value,
-      challenge: selectedchallenge.value,
-      time: selectedtime.value,
-      group_types: selectedGroupTypes.value,
-      debug: true,
-    }
+    const [
+      gRes, fRes, iRes, grRes, gwRes, swRes, exRes, attRes, inRes, preRes, expRes, cRes, tRes
+    ] = await Promise.all([
+      api.get('/subject-groups'),
+      api.get('/faculty'),
+      api.get('/interestd'),
+      api.get('/grades'),
+      api.get('/groupwork'),
+      api.get('/solowork'),
+      api.get('/exam'),
+      api.get('/attendance'),
+      api.get('/instruction'),
+      api.get('/present'),
+      api.get('/experience'),
+      api.get('/challenge'),
+      api.get('/time'),
+    ])
 
-    console.log('🚀 ส่ง payload ไป /cbr-match:', payload)
+    // ✅ กลุ่มวิชา
+    subjectGroups.value = normalizeGroups(gRes.data)
+    // ✅ ที่เหลือให้ค่ากับ state ต่าง ๆ
+    faculties.value = fRes.data ?? []
+    interestds.value = iRes.data ?? []
+    grades.value = grRes.data ?? []
+    groupwork.value = gwRes.data ?? []
+    soloWork.value = swRes.data ?? []
+    exam.value = exRes.data ?? []
+    attendance.value = attRes.data ?? []
+    instruction.value = inRes.data ?? []
+    present.value = preRes.data ?? []
+    experience.value = expRes.data ?? []
+    challenge.value = cRes.data ?? []
+    time.value = tRes.data ?? []
 
-    // ✅ ใช้ instance api ที่มี cookie
-    const { data } = await api.post('/cbr-match', payload, { withCredentials: true })
-
-    if (!data.ok) {
-      throw new Error(data.message || 'ไม่พบข้อมูลที่ตรง')
-    }
-
-    resultGroups.value = Array.isArray(data.groups) ? data.groups : []
-    const raw = (Array.isArray(data.top) && data.top.length ? data.top : data.all) || []
-    results.value = raw.map(r => ({
-      ...r,
-      similarity: Number(r.similarity ?? 0)
-    }))
-
-    resultsStore.setResults({ resultGroups: resultGroups.value, results: results.value, payload })
-    router.push({ name: 'showresults' })
-  } catch (e) {
-    console.error('❌ /cbr-match error:', e.response?.data || e)
-    if (e.response?.status === 401) {
-      errorMsg.value = 'กรุณาเข้าสู่ระบบใหม่ (Session หมดอายุ)'
-      router.push({ name: 'login' })
-    } else {
-      errorMsg.value = e?.response?.data?.message || e.message || 'เกิดข้อผิดพลาด'
-    }
-  } finally {
-    loading.value = false
+    console.log('✅ โหลดข้อมูลสำเร็จ:', {
+      subjectGroups: subjectGroups.value.length,
+      interestds: interestds.value.length,
+      groupwork: groupwork.value.length,
+    })
+  } catch (err) {
+    console.error('❌ โหลดข้อมูลไม่สำเร็จ:', err.response?.data || err.message)
   }
-}
+})
 
 </script>
 
