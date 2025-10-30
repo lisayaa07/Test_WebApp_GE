@@ -45,34 +45,24 @@ async function fetchFavorites() {
 }
 
 // toggle รายการโปรด
-async function toggleFavorite(subjectId) {
-  if (!isLoggedIn.value) {
-    alert('กรุณาเข้าสู่ระบบก่อนจึงจะใช้งานรายการโปรดได้')
-    return
-  }
-  const sid = String(subjectId).trim()
-  const wasFav = favoriteIds.value.has(sid)
-
-  // อัปเดตแบบ optimistic
-  const next = new Set(favoriteIds.value)
-  wasFav ? next.delete(sid) : next.add(sid)
-  favoriteIds.value = next
-
+async function toggleFavorite(subjectId, isFav) {
   try {
-    if (wasFav) {
-      await api.delete(`/favorites`, {
-        params: { subject_id: sid },
-        headers: authHeaders()
+    if (isFav) {
+      // 🔻 ลบออกจากรายการโปรด
+      await api.delete('/favorites', {
+        params: { subject_id: subjectId },
+        withCredentials: true, // ✅ ส่ง cookie ไปด้วย
       })
     } else {
-      await api.post(`/favorites`, { subject_id: sid }, { headers: authHeaders() })
+      // ❤️ เพิ่มเป็นรายการโปรด
+      await api.post('/favorites', { subject_id: subjectId }, {
+        withCredentials: true, // ✅ ส่ง cookie ไปด้วย
+      })
     }
+
+    console.log('✅ อัปเดตรายการโปรดสำเร็จ:', subjectId)
   } catch (err) {
-    console.error('❌ toggle favorite error:', err)
-    // rollback
-    const rollback = new Set(favoriteIds.value)
-    wasFav ? rollback.add(sid) : rollback.delete(sid)
-    favoriteIds.value = rollback
+    console.error('❌ toggle favorite error:', err.response?.data || err)
     alert('ไม่สามารถอัปเดตรายการโปรดได้ กรุณาลองใหม่')
   }
 }
