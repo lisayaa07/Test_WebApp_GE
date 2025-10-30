@@ -1,10 +1,11 @@
 require('dotenv').config();
-const express = require("express");
-const cors = require("cors");
+const express = require('express');
+const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('./db');
+const authRequired = require('./middleware/auth'); // ✅ เปลี่ยนเป็น require
 
 const app = express();
 app.set('trust proxy', 1);
@@ -16,26 +17,16 @@ const corsOpts = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
-
 app.use(cors(corsOpts));
 app.options(/.*/, cors(corsOpts));
 
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Credentials", "true");
+  res.header('Access-Control-Allow-Credentials', 'true');
   next();
 });
-
-
-app.set('trust proxy', 1);
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-
-
 
 // ✅ ตรวจ token จาก cookie
 function authRequired(req, res, next) {
@@ -67,21 +58,19 @@ app.get('/me', authRequired, async (req, res) => {
 
   if (!rows.length) return res.json({ ok: false });
 
-  // ✅ ปรับชื่อให้ตรงกับ Layout.vue
   const row = rows[0];
   res.json({
     ok: true,
     user: {
       student_ID: row.student_ID,
       student_Name: row.student_Name,
-      student_level: row.student_level, 
+      student_level: row.student_level,
       faculty_ID: row.faculty_ID,
       faculty_Name: row.faculty_Name,
       email: row.email,
-    }
+    },
   });
 });
-
 
 
 
