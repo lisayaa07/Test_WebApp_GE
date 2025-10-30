@@ -133,9 +133,14 @@ async function loadGroupedSubjects () {
 }
 
 // โหลดข้อมูลเมื่อ component mount
-onMounted(async () => {
-  await loadGroupedSubjects()
-  await fetchFavorites()
+oonMounted(async () => {
+  try {
+    const res = await api.get('/grouped-subjects')
+    groupedSubjects.value = res.data
+    console.log('📦 grouped-subjects:', res.data)
+  } catch (err) {
+    console.error('❌ โหลดข้อมูลไม่สำเร็จ:', err)
+  }
 })
 
 // ไปหน้ารีวิวรายวิชา
