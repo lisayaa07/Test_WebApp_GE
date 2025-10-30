@@ -13,7 +13,8 @@ const corsOpts = {
   optionsSuccessStatus: 204,
 }
 app.use(cors(corsOpts))
-app.options('*', cors(corsOpts))
+app.options(/.*/, cors(corsOpts)) 
+
 
 
 
