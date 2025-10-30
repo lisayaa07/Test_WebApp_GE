@@ -6,11 +6,19 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('./db');
 
-
 const app = express();
 app.set('trust proxy', 1);
 
-// ✅ ตั้งค่า CORS
+// ✅ เพิ่มบล็อกนี้ก่อน cors() เสมอ
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://test-web-app-ge.vercel.app'); // ✅ ตรงกับ frontend domain
+  res.header('Access-Control-Allow-Credentials', 'true'); // ✅ ให้ cookie ข้ามโดเมนได้
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
+
+// ✅ ตั้งค่า CORS (ตามหลัง)
 const corsOpts = {
   origin: ['https://test-web-app-ge.vercel.app'], // frontend domain
   credentials: true,
@@ -23,10 +31,6 @@ app.options(/.*/, cors(corsOpts));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Credentials', 'true');
-  next();
-});
 
 // ✅ ตรวจ token จาก cookie
 function authRequired(req, res, next) {
