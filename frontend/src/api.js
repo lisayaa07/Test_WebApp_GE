@@ -5,3 +5,4 @@ const api = axios.create({
   withCredentials: true,
   timeout: 15000,
 });
+export default api;
