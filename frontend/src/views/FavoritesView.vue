@@ -5,27 +5,16 @@ import { useRouter } from 'vue-router'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faHeart as farHeart } from '@fortawesome/free-regular-svg-icons'
 import { faHeart as fasHeart } from '@fortawesome/free-solid-svg-icons'
-import api from '@/api/api.js'   // ✅ ใช้ axios instance ที่ตั้งไว้แล้ว
+import api from '@/api/api.js'
+import { user, fetchUser, isLoggedIn } from '@/composables/useAuth.js'
 
 library.add(farHeart, fasHeart)
 
 const router = useRouter()
-
-// ---------- state ----------
-
 const groupedFavs = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
 const busy = ref(false)
-
-import { user, fetchUser, isLoggedIn } from '@/composables/useAuth.js'
-
-onMounted(async () => {
-  const ok = await fetchUser()
-  if (!ok) return router.replace({ name: 'login' })
-  await fetchFavoritesGrouped()
-})
-
 
 // ---------- utils ----------
 async function handle401(err) {
@@ -58,12 +47,11 @@ async function fetchFavoritesGrouped() {
   loading.value = true
   errorMsg.value = ''
   try {
-    const res = await api.get('/favorites/grouped', { withCredentials: true }) // ✅ เพิ่มตรงนี้กันเหนียว
+    const res = await api.get('/favorites/grouped', { withCredentials: true })
     groupedFavs.value = Array.isArray(res.data) ? res.data : []
   } catch (e) {
-    // ✅ ตรวจทั้ง response และ network error
     if (e.response && e.response.status === 401) {
-      router.replace({ name: 'login' }) // ✅ กลับไปหน้า login ถ้า session หมด
+      router.replace({ name: 'login' })
     } else {
       console.error('❌ โหลด favorites grouped ล้มเหลว:', e)
       errorMsg.value = e.message || 'โหลดรายการโปรดไม่สำเร็จ'
@@ -73,8 +61,7 @@ async function fetchFavoritesGrouped() {
   }
 }
 
-
-// ---------- เพิ่มรายการโปรด ----------
+// ---------- เพิ่ม/ลบ รายการโปรด ----------
 async function addFavorite(subjectId) {
   if (!isLoggedIn.value || busy.value) {
     if (!isLoggedIn.value) alert('กรุณาเข้าสู่ระบบก่อนจึงจะเพิ่มรายการโปรดได้')
@@ -86,14 +73,12 @@ async function addFavorite(subjectId) {
     await fetchFavoritesGrouped()
   } catch (e) {
     await handle401(e)
-    console.error('addFavorite error:', e)
     alert('ไม่สามารถเพิ่มรายการโปรดได้ กรุณาลองใหม่')
   } finally {
     busy.value = false
   }
 }
 
-// ---------- ลบรายการโปรด ----------
 async function removeFavorite(subjectId) {
   if (!isLoggedIn.value || busy.value) {
     if (!isLoggedIn.value) alert('กรุณาเข้าสู่ระบบก่อนจึงจะใช้งานรายการโปรดได้')
@@ -105,7 +90,6 @@ async function removeFavorite(subjectId) {
     await fetchFavoritesGrouped()
   } catch (e) {
     await handle401(e)
-    console.error('❌ remove favorite error', e)
     alert('ลบรายการโปรดไม่สำเร็จ กรุณาลองใหม่')
   } finally {
     busy.value = false
@@ -124,14 +108,17 @@ function goToReviews(subject) {
 
 // ---------- lifecycle ----------
 onMounted(async () => {
-  await fetchMe()              // โหลดโปรไฟล์ก่อน
-  if (isLoggedIn.value) {      // ถ้ามี session แล้ว
-    await fetchFavoritesGrouped() // 👉 โหลดรายการโปรด
+  try {
+    await fetchMe()
+    if (!isLoggedIn.value) return
+    await new Promise(r => setTimeout(r, 300))
+    await fetchFavoritesGrouped()
+  } catch (err) {
+    console.error('load favorites error:', err)
   }
 })
-
-
 </script>
+
 
 <template>
  <Layout>
