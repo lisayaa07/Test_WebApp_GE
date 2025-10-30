@@ -15,8 +15,6 @@ const corsOpts = {
 }
 
 app.use(cors(corsOpts))
-
-app.use(cors(corsOpts))
 app.options(/.*/, cors(corsOpts)) 
 
 
