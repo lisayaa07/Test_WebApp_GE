@@ -96,7 +96,7 @@ app.get('/db-health', async (_req, res) => {
 });
 
 // ✅ API ล็อกอิน
-const bcrypt = require('bcryptjs');
+
 
 app.post('/login', async (req, res) => {
   try {
