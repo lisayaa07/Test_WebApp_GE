@@ -126,24 +126,24 @@ app.post('/login', async (req, res) => {
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Origin', 'https://test-web-app-ge.vercel.app');
 
-   // ตอนที่คุณ login สำเร็จ (หลังตรวจรหัสผ่านแล้ว)
+    // ✅ สำคัญมาก: ต้องใช้ SameSite=None + Secure + HttpOnly
     res.cookie('auth', token, {
       httpOnly: true,
-      secure: true,       // ✅ ต้องใช้ https (Render ใช้อยู่แล้ว)
-      sameSite: 'none',   // ✅ เพื่ออนุญาต cross-site cookie
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 วัน
+      secure: true,
+      sameSite: 'None',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     console.log('✅ Login success:', email);
     return res.json({ ok: true, user: payload });
+
   } catch (err) {
     console.error('❌ Login error:', err);
     return res.status(500).json({ ok: false, message: 'Database error', error: err.message });
   }
 });
+
 app.post('/logout', (req, res) => {
   res.clearCookie('auth', {
     httpOnly: true,
