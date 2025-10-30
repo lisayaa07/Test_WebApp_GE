@@ -13,7 +13,7 @@ const corsOpts = {
   optionsSuccessStatus: 204,
 }
 app.use(cors(corsOpts))
-
+app.options('*', cors(corsOpts))
 
 
 
@@ -109,10 +109,12 @@ app.post('/login', async (req, res) => {
     res.cookie('auth', token, {
       httpOnly: true,
       secure: true,
-      sameSite: 'none',
+      sameSite: 'none', // ✅ ต้องเป็น 'none' เพื่ออนุญาต cross-domain
+      domain: '.onrender.com', // ✅ ใส่โดเมนของ backend
       path: '/',
-      maxAge: 2 * 60 * 60 * 1000
-    });
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    })
+
 
     console.log('✅ Login success:', email);
     return res.json({ ok: true, user: payload });
