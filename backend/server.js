@@ -17,7 +17,7 @@ app.options(/.*/, cors(corsOpts))
 
 
 
-
+app.use(express.json())    
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Credentials", "true");
   next();
@@ -34,27 +34,39 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
+import jwt from 'jsonwebtoken';
+
+// ✅ ตรวจ token จาก cookie
 function authRequired(req, res, next) {
+  const token = req.cookies?.auth;
+  if (!token) return res.status(401).json({ ok: false, message: 'no token' });
+
   try {
-    const token = req.cookies?.auth;
-    if (!token) return res.status(401).json({ ok: false, message: 'Unauthorized' });
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = user;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
     next();
-  } catch (e) {
-    return res.status(401).json({ ok: false, message: 'Unauthorized' });
+  } catch (err) {
+    console.error('JWT verify failed:', err);
+    return res.status(401).json({ ok: false, message: 'invalid token' });
   }
 }
-app.get('/me', (req, res) => {
-  try {
-    const token = req.cookies?.auth;
-    if (!token) return res.json({ ok: false });
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    return res.json({ ok: true, user });
-  } catch {
-    return res.json({ ok: false });
-  }
+
+// ✅ ใช้งาน
+app.get('/me', authRequired, async (req, res) => {
+  const student_ID = req.user?.student_ID;
+  if (!student_ID) return res.json({ ok: false });
+
+  const [rows] = await db.query(`
+    SELECT s.*, f.faculty_Name 
+    FROM Student s
+    LEFT JOIN Faculty f ON s.faculty_ID = f.faculty_ID
+    WHERE s.student_ID = ?
+  `, [student_ID]);
+
+  if (!rows.length) return res.json({ ok: false });
+  res.json({ ok: true, user: rows[0] });
 });
+
 
 
 
