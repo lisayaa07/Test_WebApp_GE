@@ -29,49 +29,55 @@ async function fetchReviews() {
   }
 }
 
+// ✅ ปุ่มย้อนกลับ
+function back() {
+  router.back()
+}
+
 // ✅ โหลดเมื่อ component mount
 onMounted(fetchReviews)
 </script>
 
 <template>
-    <Layout>
-        <div class="p-6 space-y-4">
-            <div class="flex items-center justify-between">
-                <div class="text-2xl font-bold">รีวิวจากรุ่นพี่</div>
-                <button class="btn btn-active" @click="back">ย้อนกลับ</button>
+  <Layout>
+    <div class="p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="text-2xl font-bold">รีวิวจากรุ่นพี่</div>
+        <button class="btn btn-active" @click="back">ย้อนกลับ</button>
+      </div>
+
+      <div class="bg-base-200/70 rounded-4xl py-5 shadow">
+        <div class="ml-13">
+          <div class="text-xl font-bold">
+            วิชา {{ subjectName }}
+          </div>
+
+          <div v-if="loading" class="p-4">กำลังโหลดคอมเมนต์…</div>
+          <div v-else-if="errorMsg" class="alert alert-error">{{ errorMsg }}</div>
+
+          <div v-else>
+            <div class="mb-2 text-sm opacity-70">
+              ทั้งหมด {{ reviews.length }} คอมเมนต์
             </div>
 
-            <div class=" bg-base-200/70 rounded-4xl py-5 shadow">
-                <div class="ml-13">
-                    <div class="text-xl font-bold">
-                        วิชา {{ subjectName }}
-                    </div>
+            <div v-if="!reviews.length" class="opacity-60">
+              ยังไม่มีคอมเมนต์สำหรับวิชานี้
+            </div>
 
-                    <div v-if="loading" class="p-4">กำลังโหลดคอมเมนต์…</div>
-                    <div v-else-if="errorMsg" class="alert alert-error">{{ errorMsg }}</div>
-
-                    <div v-else>
-                        <div class="mb-2 text-sm opacity-70">ทั้งหมด {{ comments.length }} คอมเมนต์</div>
-
-                        <div v-if="!comments.length" class="opacity-60">ยังไม่มีคอมเมนต์สำหรับวิชานี้</div>
-
-                        <div v-else class="space-y-3">
-                            <div v-for="c in comments" :key="c.id" class="chat chat-start">
-                                <div class="chat-bubble">
-                                    <!-- <div class="flex items-center justify-between">
-                                    <div class="text-sm">
-                                        <span v-if="c.rating">★ {{ c.rating }}</span>
-                                        <span v-if="c.date" class="ml-2">{{ c.date }}</span>
-                                    </div>
-                                </div> -->
-                                    <p class="text-base whitespace-pre-wrap">{{ c.text }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <div v-else class="space-y-3">
+              <div
+                v-for="c in reviews"
+                :key="c.id"
+                class="chat chat-start"
+              >
+                <div class="chat-bubble">
+                  <p class="text-base whitespace-pre-wrap">{{ c.text }}</p>
                 </div>
+              </div>
             </div>
-
+          </div>
         </div>
-    </Layout>
+      </div>
+    </div>
+  </Layout>
 </template>
