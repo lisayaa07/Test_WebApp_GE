@@ -1,26 +1,30 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import api from '@/api/api.js'
 import Layout from '@/layout/Layout.vue'
+import api from '@/api/api.js'
 
+// ✅ ตัวแปรพื้นฐาน
 const route = useRoute()
 const router = useRouter()
 
 const subjectId = ref(route.params.id)
-const subjectName = ref(route.query.name || '')
+const subjectName = ref(route.query.name || 'ไม่ระบุชื่อวิชา')
+
 const reviews = ref([])
 const loading = ref(true)
 const errorMsg = ref('')
 
-// ✅ โหลดรีวิวจาก backend
+// ✅ ฟังก์ชันโหลดรีวิว
 async function fetchReviews() {
   try {
+    console.log(`📡 กำลังโหลดรีวิวของวิชา ${subjectId.value}`)
     const res = await api.get(`/reviews/${subjectId.value}`)
-    console.log('✅ รีวิวที่ได้:', res.data)
-    if (!res.data.ok) throw new Error(res.data.message || 'โหลดข้อมูลไม่สำเร็จ')
+
+    if (!res?.data?.ok) throw new Error(res.data?.message || 'โหลดข้อมูลไม่สำเร็จ')
 
     reviews.value = Array.isArray(res.data.reviews) ? res.data.reviews : []
+    console.log('✅ ได้รีวิวแล้ว:', reviews.value)
   } catch (err) {
     console.error('❌ โหลดรีวิวล้มเหลว:', err)
     errorMsg.value = err.message || 'Request failed'
@@ -29,56 +33,67 @@ async function fetchReviews() {
   }
 }
 
-onMounted(() => {
-  fetchReviews()
-})
-
-// ✅ กลับไปหน้าก่อนหน้า
+// ✅ กลับหน้าก่อนหน้า
 function goBack() {
   router.back()
 }
+
+// ✅ โหลดเมื่อ component mount
+onMounted(fetchReviews)
 </script>
 
-
 <template>
-    <Layout>
-        <div class="p-6 space-y-4">
-            <div class="flex items-center justify-between">
-                <div class="text-2xl font-bold">รีวิวจากรุ่นพี่</div>
-                <button class="btn btn-active" @click="back">ย้อนกลับ</button>
-            </div>
+  <Layout>
+    <div class="p-8 bg-[#f2f5fb] min-h-screen">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-[#192F4E]">รีวิวจากรุ่นพี่</h1>
+        <button
+          @click="goBack"
+          class="btn bg-gray-200 hover:bg-gray-300 text-black rounded-full px-4 py-2"
+        >
+          ย้อนกลับ
+        </button>
+      </div>
 
-            <div class=" bg-base-200/70 rounded-4xl py-5 shadow">
-                <div class="ml-13">
-                    <div class="text-xl font-bold">
-                        วิชา {{ subjectName }}
-                    </div>
+      <h2 class="text-xl font-semibold mb-4">
+        วิชา {{ subjectName }}
+      </h2>
 
-                    <div v-if="loading" class="p-4">กำลังโหลดคอมเมนต์…</div>
-                    <div v-else-if="errorMsg" class="alert alert-error">{{ errorMsg }}</div>
+      <!-- กำลังโหลด -->
+      <div v-if="loading" class="text-center text-lg text-gray-500">
+        กำลังโหลดข้อมูล...
+      </div>
 
-                    <div v-else>
-                        <div class="mb-2 text-sm opacity-70">ทั้งหมด {{ comments.length }} คอมเมนต์</div>
+      <!-- แสดง error -->
+      <div v-else-if="errorMsg" class="bg-red-300 text-white p-4 rounded-xl text-center">
+        {{ errorMsg }}
+      </div>
 
-                        <div v-if="!comments.length" class="opacity-60">ยังไม่มีคอมเมนต์สำหรับวิชานี้</div>
+      <!-- ไม่มีรีวิว -->
+      <div
+        v-else-if="reviews.length === 0"
+        class="text-center text-gray-500 bg-white rounded-2xl p-6"
+      >
+        ยังไม่มีรีวิวสำหรับรายวิชานี้
+      </div>
 
-                        <div v-else class="space-y-3">
-                            <div v-for="c in comments" :key="c.id" class="chat chat-start">
-                                <div class="chat-bubble">
-                                    <!-- <div class="flex items-center justify-between">
-                                    <div class="text-sm">
-                                        <span v-if="c.rating">★ {{ c.rating }}</span>
-                                        <span v-if="c.date" class="ml-2">{{ c.date }}</span>
-                                    </div>
-                                </div> -->
-                                    <p class="text-base whitespace-pre-wrap">{{ c.text }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+      <!-- มีรีวิว -->
+      <div v-else class="space-y-4">
+        <div
+          v-for="(r, i) in reviews"
+          :key="r.id || i"
+          class="bg-white rounded-2xl shadow p-5 border border-blue-100"
+        >
+          <p class="text-lg font-medium text-gray-800">
+            {{ r.text || '-' }}
+          </p>
+          <div class="mt-2 flex flex-wrap gap-3 text-sm text-gray-600">
+            <span class="badge badge-ghost">เกรด: {{ r.grade || '-' }}</span>
+            <span class="badge badge-outline">คณะ: {{ r.faculty || '-' }}</span>
+            <span class="badge badge-outline">ชั้นปี: {{ r.level || '-' }}</span>
+          </div>
         </div>
-    </Layout>
+      </div>
+    </div>
+  </Layout>
 </template>
