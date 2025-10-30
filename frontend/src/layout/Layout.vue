@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import profile from '/Photo/profilee.jpg'
-import api from '@/api/api.js'
+import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://test-webapp-ge.onrender.com'
 const router = useRouter()
@@ -35,8 +35,8 @@ function cancelEditingName() { isEditingName.value = false }
 
 async function saveName() {
   try {
-    const response = await api.put(`/students/${user.value.student_ID}`, {
-      name: editableName.value,
+    const response = await axios.put(`${API_URL}/students/${user.value.student_ID}`, {
+      name: editableName.value
     })
     const updatedUser = response.data
     user.value.student_Name = updatedUser.student_Name || editableName.value
@@ -60,8 +60,11 @@ function openProfile() {
 // -------------------- โหลดข้อมูลผู้ใช้หลัง Login --------------------
 async function fetchUserProfile() {
   try {
-    const res = await api.get('/me')
-    const data = res.data
+    const res = await fetch(`${API_URL}/me`, {
+      method: 'GET',
+      credentials: 'include', // สำคัญมาก ส่งคุกกี้ไปด้วย
+    })
+    const data = await res.json()
     if (data.ok && data.user) {
       user.value = {
         email: data.user.email,
@@ -72,6 +75,7 @@ async function fetchUserProfile() {
         faculty_Name: data.user.faculty_Name,
       }
     } else {
+      // ถ้าไม่มี session -> กลับไปหน้า login
       router.replace({ name: 'login' })
     }
   } catch (e) {
@@ -83,10 +87,13 @@ async function fetchUserProfile() {
 // -------------------- โหลดข้อมูลคณะ --------------------
 async function loadFaculties() {
   try {
-    const res = await api.get('/faculty')
-    faculties.value = Array.isArray(res.data)
-      ? res.data
-      : res.data.items ?? []
+    const res = await fetch(`${API_URL}/faculty`, {
+      method: 'GET',
+      credentials: 'include',
+    })
+    const j = await res.json().catch(() => null)
+    if (!res.ok) throw new Error(j?.message || res.statusText || 'โหลดคณะไม่สำเร็จ')
+    faculties.value = Array.isArray(j) ? j : (j?.items ?? [])
   } catch (e) {
     console.error('โหลดคณะไม่สำเร็จ:', e)
     faculties.value = []
@@ -116,14 +123,16 @@ const facultyName = computed(() => {
 // -------------------- Logout --------------------
 async function logout() {
   try {
-    await api.post('/logout')
+    await fetch(`${API_URL}/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    })
   } catch (e) {
     console.warn('logout request failed:', e)
   }
   router.replace({ name: 'login' })
 }
 </script>
-
 
 <template>
   <div class="min-h-screen">

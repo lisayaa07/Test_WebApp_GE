@@ -1,86 +1,56 @@
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const db = require('./db');
-
+const express = require("express");
+const cors = require("cors");
 const app = express();
+
+const db = require('./db');  
 app.set('trust proxy', 1);
-
-// ✅ เพิ่มบล็อกนี้ก่อน cors() เสมอ
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'https://test-web-app-ge-lac.vercel.app'); // ✅ ตรงกับ frontend domain
-  res.header('Access-Control-Allow-Credentials', 'true'); // ✅ ให้ cookie ข้ามโดเมนได้
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  next();
-});
-
-// ✅ ตั้งค่า CORS (ตามหลัง)
 const corsOpts = {
-  origin: ['https://test-web-app-ge-lac.vercel.app'], // frontend domain
+  origin: ['https://test-web-app-ge.vercel.app'], // ✅ เหลืออันเดียว
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
 };
 app.use(cors(corsOpts));
-app.options(/.*/, cors(corsOpts));
+
+
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
+
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 
 app.use(cookieParser());
+
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ ตรวจ token จาก cookie
-function authRequired(req, res, next) {
-  const token = req.cookies?.auth;
-  if (!token) {
-    return res.status(401).json({ ok: false, message: 'no token' });
-  }
 
+function authRequired(req, res, next) {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    const token = req.cookies?.auth;
+    if (!token) return res.status(401).json({ ok: false, message: 'Unauthorized' });
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = user;
     next();
-  } catch (err) {
-    console.error('JWT verify failed:', err.message);
-    res.clearCookie('auth', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-    });
-    return res.status(401).json({ ok: false, message: 'invalid token' });
+  } catch (e) {
+    return res.status(401).json({ ok: false, message: 'Unauthorized' });
   }
 }
-
-// ✅ ใช้งาน
-app.get('/me', authRequired, async (req, res) => {
-  const student_ID = req.user?.student_ID;
-  if (!student_ID) return res.json({ ok: false });
-
-  const [rows] = await db.query(`
-    SELECT s.student_ID, s.student_Name, s.student_level, s.faculty_ID, f.faculty_Name, u.email
-    FROM Student s
-    LEFT JOIN Faculty f ON s.faculty_ID = f.faculty_ID
-    LEFT JOIN Users u ON s.email = u.email
-    WHERE s.student_ID = ?
-  `, [student_ID]);
-
-  if (!rows.length) return res.json({ ok: false });
-
-  const row = rows[0];
-  res.json({
-    ok: true,
-    user: {
-      student_ID: row.student_ID,
-      student_Name: row.student_Name,
-      student_level: row.student_level,
-      faculty_ID: row.faculty_ID,
-      faculty_Name: row.faculty_Name,
-      email: row.email,
-    },
-  });
+app.get('/me', (req, res) => {
+  try {
+    const token = req.cookies?.auth;
+    if (!token) return res.json({ ok: false });
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    return res.json({ ok: true, user });
+  } catch {
+    return res.json({ ok: false });
+  }
 });
 
 
@@ -96,7 +66,7 @@ app.get('/db-health', async (_req, res) => {
 });
 
 // ✅ API ล็อกอิน
-
+const bcrypt = require('bcryptjs');
 
 app.post('/login', async (req, res) => {
   try {
@@ -134,30 +104,29 @@ app.post('/login', async (req, res) => {
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
 
-    // ✅ สำคัญมาก: ต้องใช้ SameSite=None + Secure + HttpOnly
     res.cookie('auth', token, {
       httpOnly: true,
       secure: true,
-      sameSite: 'None',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: 'none',
+      path: '/',
+      maxAge: 2 * 60 * 60 * 1000
     });
 
     console.log('✅ Login success:', email);
     return res.json({ ok: true, user: payload });
-
   } catch (err) {
     console.error('❌ Login error:', err);
     return res.status(500).json({ ok: false, message: 'Database error', error: err.message });
   }
 });
-
 app.post('/logout', (req, res) => {
   res.clearCookie('auth', {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
+    path: '/',
   });
-  res.json({ ok: true, message: 'logged out' });
+  return res.json({ ok: true, message: 'Logged out' });
 });
 
 
@@ -188,7 +157,7 @@ app.get('/faculty', async (req, res) => {
 
 
 // ✅ API วิชา - ดึงเฉพาะกลุ่มวิชา (distinct group_type)
-app.get("/subject-groups", authRequired, async (req, res) => {
+app.get("/subject-groups", async (req, res) => {
   try {
     const [results] = await db.query("SELECT GroupType_ID, GroupType_Name FROM Group_Type");
     res.json(results);
@@ -501,7 +470,7 @@ app.post('/register', async (req, res) => {
 
 
 
-
+/* ---------- Case-based Reasoning ---------- */
 app.post('/cbr-match', async (req, res) => {
   const {
     interestd = [],
@@ -931,7 +900,7 @@ app.get('/popular-subjects', async (req, res) => {
 });
 
 //ดึงชื่อในตารางstudents
-app.put('/students/:id',authRequired, async (req, res) => {
+app.put('/students/:id', async (req, res) => {
   const studentId = req.params.id;
   const { name } = req.body;
 
