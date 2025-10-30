@@ -119,15 +119,6 @@ app.post('/login', async (req, res) => {
     return res.status(500).json({ ok: false, message: 'Database error', error: err.message });
   }
 });
-app.post('/logout', (req, res) => {
-  res.clearCookie('auth', {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    path: '/',
-  });
-  return res.json({ ok: true, message: 'Logged out' });
-});
 
 
 
@@ -473,58 +464,125 @@ app.post('/register', async (req, res) => {
 /* ---------- Case-based Reasoning ---------- */
 
 app.post('/cbr-match', async (req, res) => {
+  const {
+    interestd = [],
+    groupwork, solowork, exam, attendance,
+    instructions = [], instruction = '',
+    present, experience, challenge, time,
+    group_types = [], weights = {}, debug
+  } = req.body;
+
   try {
-    const input = req.body;
-    console.log('📥 /cbr-match payload:', input);
+    const wantDebug = Boolean(debug) || process.env.DEBUG_CBR === '1';
 
-    // 1️⃣ ดึงเคสทั้งหมดจากฐานข้อมูล
-    const [cases] = await db.query(`
-      SELECT 
-        s.Subject_ID,
-        s.Subject_Name,
-        s.group_type_name,
-        s.group_type,
-        s.grade_Name,
-        s.grade_ID,
-        s.review
-      FROM Subject AS s
-    `);
+    // ✅ สร้าง SQL
+    let sql = `
+      SELECT
+        fr.subject_ID,
+        s.subject_Name,
+        fr.group_type,
+        gt.GroupType_Name,
+        fr.groupwork_ID, fr.solowork_ID, fr.exam_ID, fr.attendance_ID,
+        COALESCE(fri.instruction_csv, fr.instruction_ID) AS instruction_csv,
+        fr.present_ID, fr.experience_ID, fr.challenge_ID, fr.time_ID,
+        fr.grade_ID, gm.grade_Name, fr.review,
+        fg.interestd
+      FROM Form_review AS fr
+      JOIN Form_ge  AS fg ON fg.id = fr.fg_ID
+      LEFT JOIN Subject    AS s  ON s.subject_ID = fr.subject_ID
+      LEFT JOIN Group_Type AS gt ON gt.GroupType_ID = fr.group_type
+      LEFT JOIN Grade_map  AS gm ON gm.grade_ID  = fr.grade_ID
+      LEFT JOIN (
+        SELECT fr_ID, GROUP_CONCAT(instruction_ID ORDER BY instruction_ID) AS instruction_csv
+        FROM Form_review_instruction
+        GROUP BY fr_ID
+      ) AS fri ON fri.fr_ID = fr.fr_ID
+    `;
+    const params = [];
 
-    // 2️⃣ จำลองการคำนวณ similarity (คุณอาจมีของจริงอยู่แล้ว)
-    const results = cases.map(c => {
-      const similarity = Math.random() * 100; // ตัวอย่างสุ่ม
-      return { ...c, similarity };
-    });
-
-    // 3️⃣ เรียงจากมากไปน้อย
-    results.sort((a, b) => b.similarity - a.similarity);
-
-    // 4️⃣ ✅ จัดกลุ่มตาม group_type_name
-    const grouped = {};
-    for (const r of results) {
-      const key = r.group_type_name || r.group_type || 'ไม่ระบุหมวด';
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(r);
+    if (Array.isArray(group_types) && group_types.length) {
+      sql += ` WHERE fr.group_type IN (${group_types.map(() => '?').join(',')})`;
+      params.push(...group_types);
     }
 
-    // 5️⃣ ✅ แปลงเป็น array สำหรับส่งออก
-    const groups = Object.keys(grouped).map(k => ({
-      group_type_name: k,
-      items: grouped[k]
-    }));
+    // ✅ ดึงข้อมูลจาก DB
+    const [rows] = await db.query(sql, params);
 
-    // 6️⃣ ✅ ส่ง response
-    res.json({
-      ok: true,
-      groups,                   // ส่งกลุ่มกลับไป
-      top: results.slice(0, 3),  // top 3 วิชา
-      all: results               // ทั้งหมด
+    // ---------- คำนวณความเหมือน (เหมือนของเดิม) ----------
+    const normalizeInterestTokens = (value) => {
+      if (value == null) return [];
+      const tokens = Array.isArray(value) ? value : String(value).split(',');
+      return [...new Set(tokens.map(t => t.trim()).filter(Boolean))];
+    };
+    const diceTokens = (A, B) => {
+      if (!A.length || !B.length) return null;
+      const a = new Set(A), b = new Set(B);
+      const inter = [...a].filter(x => b.has(x)).length;
+      return (2 * inter) / (a.size + b.size);
+    };
+    const simInverseAbs = (a, b) => {
+      const an = Number(a), bn = Number(b);
+      if (!Number.isFinite(an) || !Number.isFinite(bn)) return null;
+      return 1 / (1 + Math.abs(an - bn));
+    };
+
+    const baseW = {
+      interestd: 25, exam: 32, instruction: 28,
+      groupwork: 24, solowork: 19, experience: 30,
+      challenge: 22, time: 25, attendance: 38, present: 31,
+    };
+    const W = { ...baseW, ...(weights || {}) };
+
+    const userInterestTokens = normalizeInterestTokens(interestd);
+    const userInstrTokens = Array.isArray(instructions) ? instructions : String(instruction).split(',').filter(Boolean);
+
+    const results = rows.map((r) => {
+      const caseInterestTokens = normalizeInterestTokens(r.interestd);
+      const caseInstrTokens = normalizeInterestTokens(r.instruction_csv);
+
+      const sims = {
+        interestd: diceTokens(userInterestTokens, caseInterestTokens),
+        groupwork: simInverseAbs(groupwork, r.groupwork_ID),
+        solowork: simInverseAbs(solowork, r.solowork_ID),
+        exam: simInverseAbs(exam, r.exam_ID),
+        attendance: simInverseAbs(attendance, r.attendance_ID),
+        instruction: diceTokens(userInstrTokens, caseInstrTokens),
+        present: simInverseAbs(present, r.present_ID),
+        experience: simInverseAbs(experience, r.experience_ID),
+        challenge: simInverseAbs(challenge, r.challenge_ID),
+        time: simInverseAbs(time, r.time_ID),
+      };
+
+      let score = 0, wsum = 0;
+      for (const [k, s] of Object.entries(sims)) {
+        if (s == null) continue;
+        const w = W[k] || 0;
+        score += w * s;
+        wsum += w;
+      }
+      const norm = wsum ? score / wsum : 0;
+      const similarity = Math.round(Math.max(0, Math.min(1, norm)) * 10000) / 100;
+
+      return {
+        subject_ID: r.subject_ID,
+        subject_Name: r.subject_Name,
+        group_type: r.group_type,
+        group_type_name: r.GroupType_Name || '',
+        similarity,
+        review: r.review,
+        grade_Name: r.grade_Name || ''
+      };
     });
+
+    results.sort((a, b) => b.similarity - a.similarity);
+    res.json({ ok: true, top: results.slice(0, 3), all: results });
   } catch (err) {
-    console.error('❌ /cbr-match error:', err);
-    res.status(500).json({ ok: false, message: err.message });
+    console.error("❌ CBR Error:", err);
+    res.status(500).json({ ok: false, message: "Database Error", error: err.message });
   }
 });
+
+
 
 
 // ✅ ดึงรีวิวทั้งหมดของวิชานั้น
@@ -537,10 +595,9 @@ app.get('/grouped-subjects', async (req, res) => {
         s.subject_ID,
         s.subject_Name
       FROM Group_Type AS g
-      LEFT JOIN Subject AS s ON s.group_type_ID = g.groupType_ID   -- ✅ ใช้ชื่อจริงตาม DB
+      LEFT JOIN Subject AS s ON s.groupType_ID = g.groupType_ID
       ORDER BY g.groupType_ID, s.subject_Name
     `;
-
     const [rows] = await db.query(sql);
     const grouped = [];
 
@@ -554,7 +611,6 @@ app.get('/grouped-subjects', async (req, res) => {
         };
         grouped.push(group);
       }
-
       if (row.subject_ID) {
         group.subjects.push({
           subject_ID: row.subject_ID,
@@ -569,7 +625,6 @@ app.get('/grouped-subjects', async (req, res) => {
     res.status(500).json({ ok: false, message: 'Database Error', error: err.message });
   }
 });
-
 
 
 function normalizeSubjectId(x) {
