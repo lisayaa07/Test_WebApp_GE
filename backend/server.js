@@ -11,7 +11,7 @@ app.set('trust proxy', 1);
 
 // ✅ เพิ่มบล็อกนี้ก่อน cors() เสมอ
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'https://test-web-app-ge.vercel.app'); // ✅ ตรงกับ frontend domain
+  res.header('Access-Control-Allow-Origin', 'test-web-app-ge-lac.vercel.app'); // ✅ ตรงกับ frontend domain
   res.header('Access-Control-Allow-Credentials', 'true'); // ✅ ให้ cookie ข้ามโดเมนได้
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -20,7 +20,7 @@ app.use((req, res, next) => {
 
 // ✅ ตั้งค่า CORS (ตามหลัง)
 const corsOpts = {
-  origin: ['https://test-web-app-ge.vercel.app'], // frontend domain
+  origin: ['test-web-app-ge-lac.vercel.app'], // frontend domain
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
