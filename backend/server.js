@@ -119,6 +119,15 @@ app.post('/login', async (req, res) => {
     return res.status(500).json({ ok: false, message: 'Database error', error: err.message });
   }
 });
+app.post('/logout', (req, res) => {
+  res.clearCookie('auth', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    path: '/',
+  });
+  return res.json({ ok: true, message: 'Logged out' });
+});
 
 
 
@@ -595,9 +604,10 @@ app.get('/grouped-subjects', async (req, res) => {
         s.subject_ID,
         s.subject_Name
       FROM Group_Type AS g
-      LEFT JOIN Subject AS s ON s.groupType_ID = g.groupType_ID
+      LEFT JOIN Subject AS s ON s.group_type_ID = g.groupType_ID   -- ✅ ใช้ชื่อจริงตาม DB
       ORDER BY g.groupType_ID, s.subject_Name
     `;
+
     const [rows] = await db.query(sql);
     const grouped = [];
 
@@ -611,6 +621,7 @@ app.get('/grouped-subjects', async (req, res) => {
         };
         grouped.push(group);
       }
+
       if (row.subject_ID) {
         group.subjects.push({
           subject_ID: row.subject_ID,
@@ -625,6 +636,7 @@ app.get('/grouped-subjects', async (req, res) => {
     res.status(500).json({ ok: false, message: 'Database Error', error: err.message });
   }
 });
+
 
 
 function normalizeSubjectId(x) {

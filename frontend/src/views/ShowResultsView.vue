@@ -1,50 +1,36 @@
 <script setup>
 import Layout from '@/layout/Layout.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useResultsStore } from '@/stores/results'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import api from '@/api/api.js'
 
 const router = useRouter()
 const store = useResultsStore()
 
-// ✅ ใช้ ref และ computed เพื่อกัน reactive เสีย
-const groups = ref([])
+
+// อ่านจาก Pinia เท่านั้น
+const groups = computed(() =>
+  Array.isArray(store.resultGroups) ? store.resultGroups : []
+)
 const hasData = computed(() => groups.value.length > 0)
 
-// ✅ ดึงข้อมูลจาก Pinia เมื่อโหลดหน้า
-onMounted(() => {
-  const raw = store.resultGroups || store.results || []
-
-  // รองรับหลายรูปแบบ field จาก backend
-  groups.value = (Array.isArray(raw) ? raw : []).map(g => ({
-    group_type_name:
-      g.group_type_name ||
-      g.GroupType_Name ||
-      g.groupType_Name ||
-      g.group_type ||
-      'ไม่ระบุหมวด',
-    items: g.items || g.subjects || g.Subjects || [],
-  }))
-
-  console.log('✅ [ShowResults] โหลดข้อมูลจาก store:', groups.value)
-})
-
-// ✅ ปุ่มกลับ
 function backToForm() {
-  router.push({ name: 'matchcase' })
+  router.back()
 }
 
-// ✅ ปุ่มคอมเมนต์
 function Comments(c) {
-  router.push({
-    name: 'reviewsubjects',
-    params: { id: c.subject_ID },
-    query: { name: c.subject_Name || '', limit: 5 },
-  })
+    router.push({
+        name: 'reviewsubjects',
+        params: { id: c.subject_ID },     // ✅ ส่ง subject_ID ไปเป็นพารามิเตอร์
+        query: { name: c.subject_Name || '', limit: 5 }, // ส่งชื่อไว้โชว์หัวเรื่อง + limit 5
+    })
 }
-</script>
 
+onMounted(() => {
+  console.log('[ShowResults] groups =', groups.value)
+})
+</script>
 
 <template>
   <Layout>

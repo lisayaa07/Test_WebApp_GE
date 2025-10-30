@@ -2,6 +2,9 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api/api.js'
+
+
+// ✅ เพิ่มบรรทัดนี้
 import pro from '/Photo/pro.png'
 
 const router = useRouter()
@@ -17,26 +20,14 @@ const onLogin = async (e) => {
   loading.value = true
 
   try {
-    const res = await api.post(
-      '/login',
-      {
-        email: email.value.trim(),
-        password: password.value
-      },
-      { withCredentials: true } // ✅ สำคัญมาก เพื่อส่ง/รับ cookie
-    )
+    const res = await api.post('/login', {
+      email: email.value.trim(),
+      password: password.value
+    })
 
     console.log('✅ Login response:', res.data)
+    if (!res.data.ok) throw new Error(res.data.message || 'เข้าสู่ระบบไม่สำเร็จ')
 
-    if (!res.data.ok) {
-      throw new Error(res.data.message || 'เข้าสู่ระบบไม่สำเร็จ')
-    }
-
-    // ✅ เก็บสถานะใน localStorage (กัน reload แล้วหลุด)
-    localStorage.setItem('auth', '1')
-    localStorage.setItem('userEmail', email.value.trim())
-
-    // ✅ เปลี่ยนหน้า
     router.push({ name: 'home' })
   } catch (err) {
     console.error('❌ Login error:', err)
