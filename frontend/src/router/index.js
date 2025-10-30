@@ -79,7 +79,13 @@ const router = createRouter({
       path: '/test', 
       name: 'test', 
       component: test 
+    },
+    {
+      path: '/showresults',
+      name: 'showresults',
+      component: ShowResultsView
     }
+
   
 
   ],

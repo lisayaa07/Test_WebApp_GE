@@ -1,90 +1,43 @@
 <script setup>
-import Layout from '@/layout/Layout.vue'
-import { computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useResultsStore } from '@/stores/results'
-import api from '@/api/api.js'
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 
-const router = useRouter()
-const store = useResultsStore()
-
-
-// อ่านจาก Pinia เท่านั้น
-const groups = computed(() =>
-  Array.isArray(store.resultGroups) ? store.resultGroups : []
-)
-const hasData = computed(() => groups.value.length > 0)
-
-function backToForm() {
-  router.back()
-}
-
-function Comments(c) {
-    router.push({
-        name: 'reviewsubjects',
-        params: { id: c.subject_ID },     // ✅ ส่ง subject_ID ไปเป็นพารามิเตอร์
-        query: { name: c.subject_Name || '', limit: 5 }, // ส่งชื่อไว้โชว์หัวเรื่อง + limit 5
-    })
-}
+const route = useRoute()
+const results = ref([])
 
 onMounted(() => {
-  console.log('[ShowResults] groups =', groups.value)
+  try {
+    const queryResults = route.query.results
+    results.value = queryResults ? JSON.parse(queryResults) : []
+    console.log('📦 ผลลัพธ์ที่ได้รับ:', results.value)
+  } catch (err) {
+    console.error('❌ อ่านผลลัพธ์ไม่สำเร็จ:', err)
+  }
 })
 </script>
 
 <template>
-  <Layout>
-    <div class="bg-[#6495ED]/35 shadow p-6 rounded-3xl mt-10 mx-3">
-      <h1 class="text-3xl font-bold text-black/70">วิชาที่เหมาะกับนิสิต</h1>
+  <section class="p-8">
+    <h1 class="text-2xl font-bold mb-6">📊 ผลลัพธ์การคำนวณ</h1>
 
-      <div v-if="store.errorMsg" class="alert alert-error">{{ store.errorMsg }}</div>
+    <div v-if="!results.length" class="text-gray-500">
+      ไม่มีข้อมูลผลลัพธ์
+    </div>
 
-      <div v-if="!hasData" class="opacity-60">
-        ยังไม่มีผลลัพธ์ (กรุณาคำนวณจากหน้าแนะนำรายวิชาก่อน)
-      </div>
-
-      <div v-else class="ml-5 mt-5">
-        <div v-for="g in groups" :key="g.group_type || g.group_type_name" class="mb-8">
-          <h2 class="text-2xl font-bold mb-3 text-[#696969]">
-            {{ g.group_type_name || g.group_type }}
-          </h2>
-
-          <div v-if="!g.items || !g.items.length" class="opacity-60">— ไม่มีผลลัพธ์ในกลุ่มนี้ —</div>
-
-          <div v-else class="ml-15 mt-6">
-            <div v-for="c in g.items" :key="c.subject_ID" class="flex justify-between my-4">
-              <div class="text-xl">
-                {{ c.subject_Name || ('วิชา #' + c.subject_ID) }}
-              </div>
-              <div class="flex gap-3 items-center">
-                <!-- ✅ เกรดของเคส -->
-                <div class="badge badge-ghost badge-lg">
-                  เกรดที่คาดว่าจะได้ : {{ c.grade_Name || c.grade_ID || '-' }}
-                </div>
-
-                <!-- เปอร์เซ็นต์ -->
-                <div class="badge bg-pink-400 text-white badge-lg">
-                  {{ Number(c.similarity).toFixed(2) }}%
-                </div>
-
-                <!-- ปุ่มคอมเมนต์ -->
-                <button
-                  type="button"
-                  class="inline-flex p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  aria-label="ดูคอมเมนต์" title="ดูคอมเมนต์"
-                  @click="Comments(c)"
-                >
-                  <FontAwesomeIcon icon="comment-dots" size="xl" class="text-[#192F4E]" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="text-center">
-        <RouterLink to="/matchcase" class="btn bg-pink-300 hover:bg-pink-500 text-white">ย้อนกลับ</RouterLink>
+    <div v-else>
+      <div
+        v-for="(r, index) in results"
+        :key="r.subject_ID || index"
+        class="p-4 mb-4 bg-base-200 rounded-lg shadow"
+      >
+        <h2 class="text-lg font-semibold">
+          {{ r.subject_ID }} - {{ r.subject_Name }}
+        </h2>
+        <p>กลุ่ม: {{ r.group_type_name }}</p>
+        <p>ความเหมือน: {{ r.similarity }}%</p>
+        <p>เกรดเฉลี่ย: {{ r.grade_Name }}</p>
+        <p class="text-sm mt-1 text-gray-600 italic">{{ r.review }}</p>
       </div>
     </div>
-  </Layout>
+  </section>
 </template>
