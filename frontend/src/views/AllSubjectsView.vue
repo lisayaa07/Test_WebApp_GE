@@ -85,15 +85,23 @@ async function toggleFavorite(subjectId) {
 // โหลดกลุ่มรายวิชา
 onMounted(async () => {
   try {
-    const res = await api.get('/grouped-subjects')
-    groupedSubjects.value = res.data || []
-    console.log('📦 grouped-subjects:', res.data)
-  } catch (err) {
-    console.error('❌ โหลด grouped subjects ล้มเหลว:', err)
-  }
+    const [favRes, subjRes] = await Promise.all([
+      api.get('/favorites/ids', { withCredentials: true }),
+      api.get('/grouped-subjects')
+    ])
 
-  await fetchFavorites()
+    favoriteIds.value = new Set((favRes.data || []).map(String))
+    groupedSubjects.value = subjRes.data || []
+
+    console.log('✅ โหลดข้อมูลสำเร็จ:', {
+      subjects: groupedSubjects.value.length,
+      favorites: favoriteIds.value.size
+    })
+  } catch (err) {
+    console.error('❌ โหลดข้อมูลไม่สำเร็จ:', err.response?.data || err.message)
+  }
 })
+
 
 // ไปหน้ารีวิวรายวิชา
 function Comments(subject) {
