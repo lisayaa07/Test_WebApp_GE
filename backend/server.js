@@ -34,7 +34,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-import jwt from 'jsonwebtoken';
+
 
 // ✅ ตรวจ token จาก cookie
 function authRequired(req, res, next) {
