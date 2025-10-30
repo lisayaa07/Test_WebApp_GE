@@ -4,12 +4,11 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useResultsStore } from '@/stores/results'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import api from '@/api/api.js'
 
 const router = useRouter()
 const store = useResultsStore()
 
-// ✅ ดึงกลุ่มผลลัพธ์จาก Pinia store
+// ✅ ดึงข้อมูลจาก Pinia store
 const groups = computed(() =>
   Array.isArray(store.resultGroups) ? store.resultGroups : []
 )
@@ -20,7 +19,7 @@ function backToForm() {
   router.back()
 }
 
-// ✅ ปุ่ม “เริ่มทำใหม่” — ล้าง store แล้วกลับไปหน้าคำนวณ
+// ✅ ปุ่ม “เริ่มทำใหม่”
 function restartAll() {
   store.$reset()
   router.push({ name: 'matchcase' })
@@ -35,9 +34,8 @@ function Comments(c) {
   })
 }
 
-// ✅ debug log
 onMounted(() => {
-  console.log('[ShowResults] groups =', groups.value)
+  console.log('[ShowResults] resultGroups =', groups.value)
 })
 </script>
 
@@ -60,7 +58,7 @@ onMounted(() => {
       <div v-else class="ml-5 mt-5">
         <div
           v-for="g in groups"
-          :key="g.group_type || g.group_type_name"
+          :key="g.group_type_name || g.group_type"
           class="mb-8"
         >
           <h2 class="text-2xl font-bold mb-3 text-[#696969]">
@@ -81,17 +79,14 @@ onMounted(() => {
                 {{ c.subject_Name || ('วิชา #' + c.subject_ID) }}
               </div>
               <div class="flex gap-3 items-center">
-                <!-- ✅ เกรด -->
                 <div class="badge badge-ghost badge-lg">
                   เกรดที่คาดว่าจะได้ : {{ c.grade_Name || '-' }}
                 </div>
 
-                <!-- ✅ ความเหมือน -->
                 <div class="badge bg-pink-400 text-white badge-lg">
                   {{ Number(c.similarity).toFixed(2) }}%
                 </div>
 
-                <!-- ✅ ปุ่มคอมเมนต์ -->
                 <button
                   type="button"
                   class="inline-flex p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
