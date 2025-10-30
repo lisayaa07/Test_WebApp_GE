@@ -92,7 +92,8 @@ const router = createRouter({
 })
 
 
-const API_URL = '/api';
+const API_URL = 'https://test-webapp-ge.onrender.com';
+
 
 
 // 🔹 แคชสถานะสั้น ๆ เพื่อไม่ให้เรียก /me รัว ๆ ระหว่างนำทาง
