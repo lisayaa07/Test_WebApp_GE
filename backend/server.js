@@ -507,8 +507,8 @@ app.post('/cbr-match', async (req, res) => {
         GROUP BY fr_ID
       ) AS fri ON fri.fr_ID = fr.fr_ID
     `;
-    const params = [];
 
+    const params = [];
     if (Array.isArray(group_types) && group_types.length) {
       sql += ` WHERE fr.group_type IN (${group_types.map(() => '?').join(',')})`;
       params.push(...group_types);
@@ -517,24 +517,27 @@ app.post('/cbr-match', async (req, res) => {
     // ✅ ดึงข้อมูลจาก DB
     const [rows] = await db.query(sql, params);
 
-    // ---------- คำนวณความเหมือน (เหมือนของเดิม) ----------
+    // ---------- ฟังก์ชันช่วย ----------
     const normalizeInterestTokens = (value) => {
       if (value == null) return [];
       const tokens = Array.isArray(value) ? value : String(value).split(',');
       return [...new Set(tokens.map(t => t.trim()).filter(Boolean))];
     };
+
     const diceTokens = (A, B) => {
       if (!A.length || !B.length) return null;
       const a = new Set(A), b = new Set(B);
       const inter = [...a].filter(x => b.has(x)).length;
       return (2 * inter) / (a.size + b.size);
     };
+
     const simInverseAbs = (a, b) => {
       const an = Number(a), bn = Number(b);
       if (!Number.isFinite(an) || !Number.isFinite(bn)) return null;
       return 1 / (1 + Math.abs(an - bn));
     };
 
+    // ---------- คำนวณ ----------
     const baseW = {
       interestd: 25, exam: 32, instruction: 28,
       groupwork: 24, solowork: 19, experience: 30,
@@ -543,7 +546,9 @@ app.post('/cbr-match', async (req, res) => {
     const W = { ...baseW, ...(weights || {}) };
 
     const userInterestTokens = normalizeInterestTokens(interestd);
-    const userInstrTokens = Array.isArray(instructions) ? instructions : String(instruction).split(',').filter(Boolean);
+    const userInstrTokens = Array.isArray(instructions)
+      ? instructions
+      : String(instruction).split(',').filter(Boolean);
 
     const results = rows.map((r) => {
       const caseInterestTokens = normalizeInterestTokens(r.interestd);
@@ -569,6 +574,7 @@ app.post('/cbr-match', async (req, res) => {
         score += w * s;
         wsum += w;
       }
+
       const norm = wsum ? score / wsum : 0;
       const similarity = Math.round(Math.max(0, Math.min(1, norm)) * 10000) / 100;
 
@@ -584,10 +590,32 @@ app.post('/cbr-match', async (req, res) => {
     });
 
     results.sort((a, b) => b.similarity - a.similarity);
-    res.json({ ok: true, top: results.slice(0, 3), all: results });
+
+    // ✅ จัดกลุ่มตาม group_type_name
+    const grouped = {};
+    for (const r of results) {
+      const key = r.group_type_name || r.group_type || 'ไม่ระบุหมวด';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(r);
+    }
+
+    // ✅ แปลงเป็น array สำหรับ frontend
+    const groups = Object.keys(grouped).map(k => ({
+      group_type_name: k,
+      items: grouped[k].slice(0, 3), // top 3
+    }));
+
+    // ✅ ส่งกลับให้ frontend
+    res.json({
+      ok: true,
+      groups,
+      top: results.slice(0, 3),
+      all: results,
+    });
+
   } catch (err) {
-    console.error("❌ CBR Error:", err);
-    res.status(500).json({ ok: false, message: "Database Error", error: err.message });
+    console.error('❌ /cbr-match error:', err);
+    res.status(500).json({ ok: false, message: err.message });
   }
 });
 
