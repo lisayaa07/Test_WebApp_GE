@@ -631,35 +631,49 @@ app.get('/grouped-subjects', async (req, res) => {
 
 
 // ✅ ดึงรีวิวทั้งหมดของวิชานั้น
-app.get('/subjects/:id/reviews', async (req, res) => {
+app.get('/grouped-subjects', async (req, res) => {
   try {
-    const subjectId = String(req.params.id || '').trim();
-    if (!subjectId) {
-      return res.status(400).json({ ok: false, message: 'subject id is required' });
-    }
-
     const sql = `
       SELECT
-        fr_ID      AS id,
-        subject_ID AS subjectId,
-        review     AS text
-      FROM Form_review
-      WHERE subject_ID = ?
-      ORDER BY fr_ID DESC
+        g.groupType_ID,
+        g.groupType_Name,
+        s.subject_ID,
+        s.subject_Name
+      FROM Group_Type g
+      LEFT JOIN Subject s ON s.groupType_ID = g.groupType_ID   -- ✅ ใช้ชื่อ column ที่ตรงกับ DB จริง
+      ORDER BY g.groupType_ID, s.subject_Name
     `;
-    const [rows] = await db.query(sql, [subjectId]);
 
-    res.json({
-      ok: true,
-      subjectId,
-      count: rows.length,
-      reviews: rows
+    const [rows] = await db.query(sql);
+
+    const grouped = [];
+
+    rows.forEach(row => {
+      let group = grouped.find(g => g.group_ID === row.groupType_ID);
+      if (!group) {
+        group = {
+          group_ID: row.groupType_ID,
+          group_Name: row.groupType_Name,
+          subjects: []
+        };
+        grouped.push(group);
+      }
+
+      if (row.subject_ID) {
+        group.subjects.push({
+          subject_ID: row.subject_ID,
+          subject_Name: row.subject_Name
+        });
+      }
     });
+
+    res.json(grouped);
   } catch (err) {
-    console.error('❌ fetch reviews failed:', err);
-    res.status(500).json({ ok: false, message: 'Failed to fetch reviews', error: err.message });
+    console.error('❌ grouped-subjects error:', err);
+    res.status(500).json({ ok: false, message: 'Database Error', error: err.message });
   }
 });
+
 
 
 function normalizeSubjectId(x) {
